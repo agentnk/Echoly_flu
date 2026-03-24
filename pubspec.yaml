@@ -1,0 +1,19 @@
+name: echoly
+description: A cross-platform web teleprompter desktop app.
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  window_manager: ^0.3.9
+  file_picker: ^6.1.1
+  provider: ^6.1.1
+  lucide_icons: ^0.1.0
+
+flutter:
+  uses-material-design: true
