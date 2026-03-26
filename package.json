@@ -1,0 +1,11 @@
+{
+  "name": "echoly",
+  "version": "1.0.0",
+  "description": "Echoly framework to electron app",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "author": "",
+  "license": "ISC"
+}
