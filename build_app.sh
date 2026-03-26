@@ -14,6 +14,13 @@ mkdir -p "$RES_DIR"
 echo "Compiling swift application..."
 swiftc -parse-as-library Echoly.swift -o "$BIN_DIR/$APP_NAME"
 
+# Copy Icon if exists
+ICON_KEY=""
+if [ -f "icon.icns" ]; then
+    cp "icon.icns" "$RES_DIR/AppIcon.icns"
+    ICON_KEY="<key>CFBundleIconFile</key><string>AppIcon</string>"
+fi
+
 # Create Info.plist to make it a legit macOS app
 cat > "${APP_DIR}/Contents/Info.plist" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
@@ -34,6 +41,7 @@ cat > "${APP_DIR}/Contents/Info.plist" <<EOF
     <string>11.0</string>
     <key>NSHighResolutionCapable</key>
     <true/>
+    ${ICON_KEY}
 </dict>
 </plist>
 EOF
