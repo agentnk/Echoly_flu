@@ -1,5 +1,20 @@
 import SwiftUI
 import AppKit
+import UniformTypeIdentifiers
+
+enum AppTheme: Int {
+    case system = 0
+    case light = 1
+    case dark = 2
+    
+    var colorScheme: ColorScheme? {
+        switch self {
+        case .system: return nil
+        case .light: return .light
+        case .dark: return .dark
+        }
+    }
+}
 
 @main
 struct EcholyApp: App {
@@ -8,7 +23,7 @@ struct EcholyApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
-                .frame(minWidth: 350, minHeight: 400)
+                .frame(minWidth: 400, minHeight: 450)
                 .background(VisualEffectView(material: .hudWindow, blendingMode: .behindWindow))
         }
         .windowStyle(HiddenTitleBarWindowStyle())
@@ -18,21 +33,20 @@ struct EcholyApp: App {
 class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         if let window = NSApplication.shared.windows.first {
-            window.level = .floating // Always on top
+            window.level = .floating 
             window.isOpaque = false
             window.backgroundColor = .clear
             window.title = "Echoly"
         }
 
-        // Global key monitor for Play/Pause and Speed
         NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
-            if event.keyCode == 49 { // Spacebar
+            if event.keyCode == 49 { 
                 NotificationCenter.default.post(name: NSNotification.Name("TogglePlay"), object: nil)
-                return nil // Consume event
-            } else if event.keyCode == 126 { // Up arrow
+                return nil 
+            } else if event.keyCode == 126 { 
                 NotificationCenter.default.post(name: NSNotification.Name("SpeedUp"), object: nil)
                 return nil
-            } else if event.keyCode == 125 { // Down arrow
+            } else if event.keyCode == 125 { 
                 NotificationCenter.default.post(name: NSNotification.Name("SpeedDown"), object: nil)
                 return nil
             }
@@ -52,42 +66,71 @@ struct VisualEffectView: NSViewRepresentable {
         view.state = .active
         return view
     }
-
     func updateNSView(_ nsView: NSVisualEffectView, context: Context) {}
 }
 
+struct SettingsView: View {
+    @AppStorage("themePreference") private var themePreference: Int = 0
+    @AppStorage("lineSpace") private var lineSpace: Double = 8.0
+    @Environment(\.presentationMode) var presentationMode
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            Text("Settings").font(.headline)
+            
+            VStack(alignment: .leading, spacing: 10) {
+                Text("Display Theme").font(.subheadline).bold()
+                Picker("Theme", selection: $themePreference) {
+                    Text("System Default").tag(0)
+                    Text("Light").tag(1)
+                    Text("Dark").tag(2)
+                }
+                .pickerStyle(RadioGroupPickerStyle())
+            }
+            
+            Divider()
+            
+            VStack(alignment: .leading, spacing: 10) {
+                Text("Line Spacing: \(Int(lineSpace))").font(.subheadline).bold()
+                Slider(value: $lineSpace, in: 0...40, step: 2)
+            }
+            
+            HStack {
+                Spacer()
+                Button("Close") {
+                    presentationMode.wrappedValue.dismiss()
+                }
+                .keyboardShortcut(.defaultAction)
+            }
+        }
+        .padding()
+        .frame(width: 320)
+    }
+}
+
 struct ContentView: View {
-    @State private var text: String = """
-    Welcome to Echoly!
-    Your Native Floating Teleprompter.
+    @AppStorage("themePreference") private var themePreference: Int = 0
+    @AppStorage("lineSpace") private var lineSpace: Double = 8.0
     
-    This window stays on top of 
-    everything else so you can read
-    while looking at the camera.
-    
-    Open a text file to begin.
-    Use the Play button or Spacebar
-    to start scrolling.
-    
-    Use Up/Down arrows to change speed.
-    """
+    @State private var text: String = "Welcome to Echoly!\n\nOpen a .txt or .docx file to begin.\n\nUse the Gear icon to access Settings."
     @State private var fontSize: CGFloat = 32
     @State private var speed: CGFloat = 1.0
     @State private var isPlaying = false
     @State private var scrollPosition: CGFloat = 0
+    @State private var showingSettings = false
     @State private var timer: Timer?
+    
+    var theme: AppTheme { AppTheme(rawValue: themePreference) ?? .system }
 
     var body: some View {
         VStack(spacing: 0) {
-            // macOS Titlebar area proxy
             Spacer().frame(height: 28) 
 
-            // Toolbar
             HStack {
                 Button(action: openFile) { 
                     Image(systemName: "folder")
                 }
-                .help("Open File")
+                .help("Open File (.txt or .docx)")
                 
                 Spacer()
                 
@@ -99,9 +142,19 @@ struct ContentView: View {
                 
                 Spacer()
                 
-                HStack(spacing: 8) {
-                    Button(action: { if fontSize > 12 { fontSize -= 2 } }) { Text("A-") }
-                    Button(action: { if fontSize < 120 { fontSize += 2 } }) { Text("A+") }
+                HStack(spacing: 16) {
+                    HStack(spacing: 8) {
+                        Button(action: { if fontSize > 12 { fontSize -= 2 } }) { Text("A-") }
+                        Button(action: { if fontSize < 120 { fontSize += 2 } }) { Text("A+") }
+                    }
+                    
+                    Button(action: { showingSettings.toggle() }) {
+                        Image(systemName: "gearshape.fill")
+                    }
+                    .help("Settings")
+                    .popover(isPresented: $showingSettings) {
+                        SettingsView()
+                    }
                 }
             }
             .font(.system(size: 18, weight: .semibold))
@@ -111,12 +164,11 @@ struct ContentView: View {
 
             Divider()
 
-            // Main Prompter View
             GeometryReader { geo in
                 Text(text)
                     .font(.system(size: fontSize, design: .monospaced))
                     .foregroundColor(.primary)
-                    .lineSpacing(8)
+                    .lineSpacing(lineSpace)
                     .padding(.horizontal, 24)
                     .frame(maxWidth: .infinity, alignment: .topLeading)
                     .offset(y: max(0, geo.size.height * 0.45) - scrollPosition)
@@ -124,6 +176,7 @@ struct ContentView: View {
             .clipped()
         }
         .edgesIgnoringSafeArea(.top)
+        .preferredColorScheme(theme.colorScheme)
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("TogglePlay"))) { _ in
             togglePlay()
         }
@@ -137,10 +190,21 @@ struct ContentView: View {
     
     func openFile() {
         let panel = NSOpenPanel()
-        panel.allowedContentTypes = [.plainText]
+        panel.allowedContentTypes = [.plainText, UTType(filenameExtension: "docx") ?? .data]
         if panel.runModal() == .OK {
-            if let url = panel.url, let content = try? String(contentsOf: url, encoding: .utf8) {
-                self.text = content
+            if let url = panel.url {
+                if url.pathExtension.lowercased() == "docx" {
+                    let options: [NSAttributedString.DocumentReadingOptionKey: Any] = [
+                        .documentType: NSAttributedString.DocumentType.officeOpenXML
+                    ]
+                    if let attrString = try? NSAttributedString(url: url, options: options, documentAttributes: nil) {
+                        self.text = attrString.string
+                    }
+                } else {
+                    if let content = try? String(contentsOf: url, encoding: .utf8) {
+                        self.text = content
+                    }
+                }
                 self.scrollPosition = 0
                 self.isPlaying = false
                 timer?.invalidate()
