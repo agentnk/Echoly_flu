@@ -10,6 +10,10 @@ struct SettingsView: View {
     @AppStorage("windowOpacity") private var windowOpacity: Double = 1.0
     @AppStorage("mirrorMode") private var mirrorMode: Bool = false
     @AppStorage("recentFiles") private var recentFilesData: String = ""
+    @AppStorage("fontFamily") private var fontFamily: Int = 0
+    @AppStorage("textAlignment") private var textAlignment: Int = 0
+    @AppStorage("highContrast") private var highContrast: Bool = false
+    @AppStorage("speedPresets") private var speedPresetsData: String = "Slow:0.5|||Normal:1.0|||Fast:2.0"
     
     @State private var draftTheme: Int = 0
     @State private var draftLineSpace: Double = 8.0
@@ -18,9 +22,20 @@ struct SettingsView: View {
     @State private var draftHideSharing: Bool = false
     @State private var draftOpacity: Double = 1.0
     @State private var draftMirror: Bool = false
+    @State private var draftFontFamily: Int = 0
+    @State private var draftAlignment: Int = 0
+    @State private var draftHighContrast: Bool = false
     
     var recentFiles: [String] {
         recentFilesData.isEmpty ? [] : recentFilesData.components(separatedBy: "|||")
+    }
+    
+    var speedPresets: [(name: String, speed: Double)] {
+        speedPresetsData.components(separatedBy: "|||").compactMap { entry in
+            let parts = entry.components(separatedBy: ":")
+            guard parts.count == 2, let spd = Double(parts[1]) else { return nil }
+            return (parts[0], spd)
+        }
     }
     
     var body: some View {
@@ -40,12 +55,26 @@ struct SettingsView: View {
                     settingsRow("Opacity", value: "\(Int(draftOpacity * 100))%")
                     Slider(value: $draftOpacity, in: 0.3...1.0, step: 0.05)
                     
-                    Toggle("Mirror text", isOn: $draftMirror)
-                        .font(.system(size: 12))
+                    Toggle("Mirror text", isOn: $draftMirror).font(.system(size: 12))
+                    Toggle("High contrast", isOn: $draftHighContrast).font(.system(size: 12))
                 }
                 
                 // Typography
                 settingsSection("Typography") {
+                    Picker("Font", selection: $draftFontFamily) {
+                        Text("Monospaced").tag(0)
+                        Text("Serif").tag(1)
+                        Text("Sans-serif").tag(2)
+                    }
+                    .labelsHidden()
+                    
+                    Picker("Alignment", selection: $draftAlignment) {
+                        Image(systemName: "text.alignleft").tag(0)
+                        Image(systemName: "text.aligncenter").tag(1)
+                        Image(systemName: "text.alignright").tag(2)
+                    }
+                    .pickerStyle(SegmentedPickerStyle())
+                    
                     settingsRow("Line Spacing", value: "\(Int(draftLineSpace))")
                     Slider(value: $draftLineSpace, in: 0...40, step: 2)
                 }
@@ -66,10 +95,43 @@ struct SettingsView: View {
                     .labelsHidden()
                 }
                 
+                // Speed Presets
+                settingsSection("Speed Presets") {
+                    ForEach(speedPresets, id: \.name) { preset in
+                        Button(action: {
+                            NotificationCenter.default.post(name: NSNotification.Name("ApplySpeedPreset"), object: preset.speed)
+                            SettingsWindowManager.sharedWindow?.close()
+                        }) {
+                            HStack {
+                                Text(preset.name).font(.system(size: 12))
+                                Spacer()
+                                Text("\(String(format: "%.1f", preset.speed))×")
+                                    .font(.system(size: 11, design: .monospaced))
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                
                 // Privacy
                 settingsSection("Privacy") {
                     Toggle("Hide from screen sharing", isOn: $draftHideSharing)
                         .font(.system(size: 12))
+                }
+                
+                // Export
+                settingsSection("Export") {
+                    Button(action: {
+                        ContentView.exportPDF(text: "", fontSize: 28)  // Will use notification
+                        NotificationCenter.default.post(name: NSNotification.Name("ExportPDF"), object: nil)
+                    }) {
+                        HStack(spacing: 6) {
+                            Image(systemName: "arrow.down.doc").font(.system(size: 10))
+                            Text("Export as PDF").font(.system(size: 12))
+                        }
+                    }
+                    .buttonStyle(.plain)
                 }
                 
                 // Recent Files
@@ -81,13 +143,9 @@ struct SettingsView: View {
                                 SettingsWindowManager.sharedWindow?.close()
                             }) {
                                 HStack(spacing: 6) {
-                                    Image(systemName: "doc")
-                                        .font(.system(size: 10))
-                                        .foregroundColor(.secondary)
+                                    Image(systemName: "doc").font(.system(size: 10)).foregroundColor(.secondary)
                                     Text(URL(fileURLWithPath: path).lastPathComponent)
-                                        .font(.system(size: 12))
-                                        .lineLimit(1)
-                                        .truncationMode(.middle)
+                                        .font(.system(size: 12)).lineLimit(1).truncationMode(.middle)
                                     Spacer()
                                 }
                             }
@@ -99,11 +157,8 @@ struct SettingsView: View {
                 // Actions
                 HStack {
                     Spacer()
-                    Button("Cancel") {
-                        SettingsWindowManager.sharedWindow?.close()
-                    }
-                    .keyboardShortcut(.cancelAction)
-                    
+                    Button("Cancel") { SettingsWindowManager.sharedWindow?.close() }
+                        .keyboardShortcut(.cancelAction)
                     Button("Save") {
                         themePreference = draftTheme
                         lineSpace = draftLineSpace
@@ -112,6 +167,9 @@ struct SettingsView: View {
                         hideFromScreenSharing = draftHideSharing
                         windowOpacity = draftOpacity
                         mirrorMode = draftMirror
+                        fontFamily = draftFontFamily
+                        textAlignment = draftAlignment
+                        highContrast = draftHighContrast
                         SettingsWindowManager.sharedWindow?.close()
                     }
                     .keyboardShortcut(.defaultAction)
@@ -119,7 +177,7 @@ struct SettingsView: View {
             }
             .padding(20)
         }
-        .frame(width: 320, height: 480)
+        .frame(width: 320, height: 560)
         .onAppear {
             draftTheme = themePreference
             draftLineSpace = lineSpace
@@ -128,6 +186,9 @@ struct SettingsView: View {
             draftHideSharing = hideFromScreenSharing
             draftOpacity = windowOpacity
             draftMirror = mirrorMode
+            draftFontFamily = fontFamily
+            draftAlignment = textAlignment
+            draftHighContrast = highContrast
         }
     }
     
@@ -137,7 +198,7 @@ struct SettingsView: View {
     func settingsSection<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(title.uppercased())
-                .font(.system(size: 10, weight: .semibold, design: .default))
+                .font(.system(size: 10, weight: .semibold))
                 .foregroundColor(.secondary.opacity(0.6))
                 .tracking(1.2)
             content()
@@ -149,9 +210,7 @@ struct SettingsView: View {
         HStack {
             Text(label).font(.system(size: 12))
             Spacer()
-            Text(value)
-                .font(.system(size: 11, design: .monospaced))
-                .foregroundColor(.secondary)
+            Text(value).font(.system(size: 11, design: .monospaced)).foregroundColor(.secondary)
         }
     }
 }
@@ -162,7 +221,7 @@ class SettingsWindowManager {
     static func show() {
         if sharedWindow == nil {
             let window = NSWindow(
-                contentRect: NSRect(x: 0, y: 0, width: 320, height: 480),
+                contentRect: NSRect(x: 0, y: 0, width: 320, height: 560),
                 styleMask: [.titled, .closable],
                 backing: .buffered,
                 defer: false
@@ -172,7 +231,6 @@ class SettingsWindowManager {
             window.center()
             window.isReleasedWhenClosed = false
             window.level = .floating
-
             sharedWindow = window
             NotificationCenter.default.addObserver(forName: NSWindow.willCloseNotification, object: window, queue: .main) { _ in
                 sharedWindow = nil

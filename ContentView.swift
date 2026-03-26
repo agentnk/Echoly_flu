@@ -11,8 +11,11 @@ struct ContentView: View {
     @AppStorage("windowOpacity") private var windowOpacity: Double = 1.0
     @AppStorage("mirrorMode") private var mirrorMode: Bool = false
     @AppStorage("recentFiles") private var recentFilesData: String = ""
+    @AppStorage("fontFamily") private var fontFamily: Int = 0 // 0=mono, 1=serif, 2=sans
+    @AppStorage("textAlignment") private var textAlignment: Int = 0 // 0=left, 1=center, 2=right
+    @AppStorage("highContrast") private var highContrast: Bool = false
     
-    @State private var text: String = "Welcome to Echoly.\n\nDrop a file here, or tap the folder icon to open one."
+    @State private var text: String = "Welcome to Echoly.\n\nDrop a file here, or tap the folder icon to open one.\n\nUse [PAUSE] markers in your script for auto-pause."
     @State private var fontSize: CGFloat = 28
     @State private var speed: CGFloat = 1.0
     @State private var isPlaying = false
@@ -25,7 +28,7 @@ struct ContentView: View {
     @State private var textHeight: CGFloat = 0
     @State private var containerHeight: CGFloat = 0
     @State private var isTargeted = false
-    @State private var toolbarHovered = false
+    @State private var currentSpeedPreset: String = ""
     
     var theme: AppTheme { AppTheme(rawValue: themePreference) ?? .system }
     
@@ -34,13 +37,69 @@ struct ContentView: View {
         let maxScroll = max(textHeight - containerHeight * 0.55, 1)
         return min(scrollPosition / maxScroll, 1.0)
     }
+    
+    var wordCount: Int {
+        text.split(whereSeparator: { $0.isWhitespace || $0.isNewline }).count
+    }
+    
+    var estimatedReadTime: String {
+        let minutes = Double(wordCount) / 150.0 // avg speaking pace
+        if minutes < 1 { return "<1 min" }
+        return "\(Int(minutes)) min"
+    }
+    
+    var fontDesign: Font.Design {
+        switch fontFamily {
+        case 1: return .serif
+        case 2: return .default // sans-serif
+        default: return .monospaced
+        }
+    }
+    
+    var alignment: TextAlignment {
+        switch textAlignment {
+        case 1: return .center
+        case 2: return .trailing
+        default: return .leading
+        }
+    }
+    
+    var frameAlignment: Alignment {
+        switch textAlignment {
+        case 1: return .topLeading
+        case 2: return .topTrailing
+        default: return .topLeading
+        }
+    }
+    
+    // Parse text into segments for cue marker rendering
+    var textSegments: [(text: String, isCue: Bool)] {
+        let pattern = "\\[(PAUSE|SLOW|CUE)\\]"
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: .caseInsensitive) else {
+            return [(text, false)]
+        }
+        var segments: [(String, Bool)] = []
+        var lastEnd = text.startIndex
+        let nsRange = NSRange(text.startIndex..., in: text)
+        
+        for match in regex.matches(in: text, range: nsRange) {
+            if let range = Range(match.range, in: text) {
+                let before = String(text[lastEnd..<range.lowerBound])
+                if !before.isEmpty { segments.append((before, false)) }
+                segments.append((String(text[range]), true))
+                lastEnd = range.upperBound
+            }
+        }
+        let remaining = String(text[lastEnd...])
+        if !remaining.isEmpty { segments.append((remaining, false)) }
+        return segments
+    }
 
     var body: some View {
         VStack(spacing: 0) {
-            // Invisible drag area
             Color.clear.frame(height: 28)
             
-            // Minimal Toolbar
+            // Toolbar
             HStack(spacing: 14) {
                 toolbarButton("folder", action: openFile, help: "Open")
                 toolbarButton("arrow.counterclockwise", action: resetScroll, help: "Reset")
@@ -65,12 +124,10 @@ struct ContentView: View {
                 
                 HStack(spacing: 10) {
                     toolbarButton("minus", action: { if fontSize > 12 { fontSize -= 2 } }, help: "Smaller")
-                    
                     Text("\(Int(fontSize))")
                         .font(.system(size: 10, weight: .medium, design: .monospaced))
                         .foregroundColor(.secondary.opacity(0.5))
                         .frame(width: 20)
-                    
                     toolbarButton("plus", action: { if fontSize < 120 { fontSize += 2 } }, help: "Larger")
                     
                     toolbarButton(
@@ -86,10 +143,7 @@ struct ContentView: View {
             .padding(.horizontal, 16)
             .padding(.vertical, 6)
             
-            // Subtle separator
-            Rectangle()
-                .fill(Color.primary.opacity(0.06))
-                .frame(height: 1)
+            Rectangle().fill(Color.primary.opacity(0.06)).frame(height: 1)
 
             // Main Prompter
             ZStack {
@@ -97,25 +151,18 @@ struct ContentView: View {
                     Group {
                         if isEditing {
                             TextEditor(text: $text)
-                                .font(.system(size: fontSize, weight: .light, design: .monospaced))
+                                .font(.system(size: fontSize, weight: .light, design: fontDesign))
                                 .lineSpacing(lineSpace)
                                 .padding(.horizontal, 20)
                                 .scrollContentBackground(.hidden)
                                 .background(Color.clear)
                         } else {
-                            Text(text)
-                                .font(.system(size: fontSize, weight: .light, design: .monospaced))
-                                .foregroundColor(.primary.opacity(0.85))
-                                .lineSpacing(lineSpace)
+                            cueRenderedText()
                                 .padding(.horizontal, 20)
-                                .frame(maxWidth: .infinity, alignment: .topLeading)
+                                .frame(maxWidth: .infinity, alignment: frameAlignment)
                                 .background(GeometryReader { textGeo in
-                                    Color.clear.onAppear {
-                                        textHeight = textGeo.size.height
-                                    }
-                                    .onChange(of: text) { _ in
-                                        textHeight = textGeo.size.height
-                                    }
+                                    Color.clear.onAppear { textHeight = textGeo.size.height }
+                                    .onChange(of: text) { _ in textHeight = textGeo.size.height }
                                 })
                                 .offset(y: max(0, geo.size.height * 0.4) - scrollPosition)
                                 .scaleEffect(x: mirrorMode ? -1 : 1, y: 1)
@@ -125,16 +172,13 @@ struct ContentView: View {
                 }
                 .clipped()
                 
-                // Countdown
                 if showCountdown {
-                    Color.black.opacity(0.5)
-                        .edgesIgnoringSafeArea(.all)
+                    Color.black.opacity(0.5).edgesIgnoringSafeArea(.all)
                     Text("\(countdownValue)")
                         .font(.system(size: 80, weight: .ultraLight, design: .rounded))
                         .foregroundColor(.white.opacity(0.9))
                 }
                 
-                // Drop overlay
                 if isTargeted {
                     RoundedRectangle(cornerRadius: 8)
                         .stroke(Color.primary.opacity(0.15), style: StrokeStyle(lineWidth: 1.5, dash: [6]))
@@ -143,7 +187,7 @@ struct ContentView: View {
                 }
             }
             
-            // Progress — ultra-thin
+            // Progress bar
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
                     Rectangle().fill(Color.primary.opacity(0.04)).frame(height: 2)
@@ -154,10 +198,23 @@ struct ContentView: View {
                 }
             }
             .frame(height: 2)
+            
+            // Footer — word count & read time
+            HStack {
+                Text("\(wordCount) words · \(estimatedReadTime)")
+                    .font(.system(size: 9, weight: .medium, design: .monospaced))
+                    .foregroundColor(.secondary.opacity(0.4))
+                Spacer()
+                Text("\(Int(progress * 100))%")
+                    .font(.system(size: 9, weight: .medium, design: .monospaced))
+                    .foregroundColor(.secondary.opacity(0.4))
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 4)
         }
         .opacity(windowOpacity)
         .edgesIgnoringSafeArea(.top)
-        .preferredColorScheme(theme.colorScheme)
+        .preferredColorScheme(highContrast ? .dark : theme.colorScheme)
         .onDrop(of: [.fileURL], isTargeted: $isTargeted) { providers in
             handleDrop(providers: providers)
         }
@@ -180,6 +237,38 @@ struct ContentView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("OpenRecentFile"))) { notif in
             if let path = notif.object as? String { loadFile(from: URL(fileURLWithPath: path)) }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ApplySpeedPreset"))) { notif in
+            if let spd = notif.object as? Double { speed = CGFloat(spd) }
+        }
+    }
+    
+    // MARK: - Cue Rendered Text
+    
+    @ViewBuilder
+    func cueRenderedText() -> some View {
+        let segs = textSegments
+        if segs.count <= 1 {
+            Text(text)
+                .font(.system(size: fontSize, weight: .light, design: fontDesign))
+                .foregroundColor(highContrast ? .white : .primary.opacity(0.85))
+                .lineSpacing(lineSpace)
+                .multilineTextAlignment(alignment)
+        } else {
+            let attributed = segs.reduce(Text("")) { result, seg in
+                if seg.isCue {
+                    return result + Text(seg.text)
+                        .font(.system(size: fontSize * 0.75, weight: .bold, design: .rounded))
+                        .foregroundColor(.orange)
+                } else {
+                    return result + Text(seg.text)
+                        .font(.system(size: fontSize, weight: .light, design: fontDesign))
+                        .foregroundColor(highContrast ? .white : .primary.opacity(0.85))
+                }
+            }
+            attributed
+                .lineSpacing(lineSpace)
+                .multilineTextAlignment(alignment)
         }
     }
     
@@ -266,12 +355,82 @@ struct ContentView: View {
         recentFilesData = files.joined(separator: "|||")
     }
     
+    // MARK: - Auto-scroll with cue detection
+    
     func togglePlay() {
         isPlaying.toggle()
         if isPlaying {
-            timer = Timer.scheduledTimer(withTimeInterval: 0.02, repeats: true) { _ in scrollPosition += speed }
+            timer = Timer.scheduledTimer(withTimeInterval: 0.02, repeats: true) { _ in
+                scrollPosition += speed
+                checkForCuePause()
+            }
         } else {
             timer?.invalidate(); timer = nil
+        }
+    }
+    
+    func checkForCuePause() {
+        // Approximate which character is at the current scroll position
+        let approxCharPerPixel = Double(text.count) / max(textHeight, 1)
+        let currentCharIndex = Int(scrollPosition * approxCharPerPixel)
+        
+        let searchRange = max(0, currentCharIndex - 3)...min(text.count, currentCharIndex + 10)
+        let startIdx = text.index(text.startIndex, offsetBy: max(0, searchRange.lowerBound), limitedBy: text.endIndex) ?? text.startIndex
+        let endIdx = text.index(text.startIndex, offsetBy: min(text.count, searchRange.upperBound), limitedBy: text.endIndex) ?? text.endIndex
+        let window = String(text[startIdx..<endIdx])
+        
+        if window.localizedCaseInsensitiveContains("[PAUSE]") {
+            togglePlay()
+        }
+    }
+    
+    // MARK: - Export PDF
+    
+    static func exportPDF(text: String, fontSize: CGFloat) {
+        let panel = NSSavePanel()
+        panel.allowedContentTypes = [.pdf]
+        panel.nameFieldStringValue = "script.pdf"
+        if panel.runModal() == .OK, let url = panel.url {
+            let pageRect = CGRect(x: 0, y: 0, width: 612, height: 792) // US Letter
+            let textRect = pageRect.insetBy(dx: 50, dy: 50)
+            
+            let renderer = NSGraphicsContext.current
+            let pdfData = NSMutableData()
+            
+            guard let consumer = CGDataConsumer(data: pdfData as CFMutableData),
+                  let context = CGContext(consumer: consumer, mediaBox: nil, nil) else { return }
+            
+            let paragraphs = text.components(separatedBy: "\n")
+            var currentY: CGFloat = textRect.maxY
+            let font = NSFont.monospacedSystemFont(ofSize: fontSize * 0.4, weight: .regular)
+            let attrs: [NSAttributedString.Key: Any] = [
+                .font: font,
+                .foregroundColor: NSColor.black
+            ]
+            
+            context.beginPDFPage(nil)
+            
+            for para in paragraphs {
+                let attrStr = NSAttributedString(string: para, attributes: attrs)
+                let framesetter = CTFramesetterCreateWithAttributedString(attrStr)
+                let size = CTFramesetterSuggestFrameSizeWithConstraints(framesetter, CFRange(location: 0, length: attrStr.length), nil, CGSize(width: textRect.width, height: .greatestFiniteMagnitude), nil)
+                
+                currentY -= size.height + 4
+                if currentY < textRect.minY {
+                    context.endPDFPage()
+                    context.beginPDFPage(nil)
+                    currentY = textRect.maxY - size.height - 4
+                }
+                
+                let path = CGPath(rect: CGRect(x: textRect.minX, y: currentY, width: textRect.width, height: size.height), transform: nil)
+                let frame = CTFramesetterCreateFrame(framesetter, CFRange(location: 0, length: attrStr.length), path, nil)
+                CTFrameDraw(frame, context)
+            }
+            
+            context.endPDFPage()
+            context.closePDF()
+            
+            try? pdfData.write(to: url)
         }
     }
 }
