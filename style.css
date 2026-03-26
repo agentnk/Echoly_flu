@@ -1,0 +1,243 @@
+@import url('https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&family=Inter:wght@400;600;700&display=swap');
+
+:root {
+  --bg-color: #F9FAFB;
+  --bg-header: #FFFFFF;
+  --text-active: #0F172A;
+  --text-inactive: #CBD5E1;
+  --text-muted: #94A3B8;
+  --border-color: #E2E8F0;
+  --button-hover: #F1F5F9;
+  --indicator-color: #60A5FA;
+}
+
+body.dark {
+  --bg-color: #1E1E1E;
+  --bg-header: #252525;
+  --text-active: #FFFFFF;
+  --text-inactive: #4B5563;
+  --text-muted: #9CA3AF;
+  --border-color: #333333;
+  --button-hover: #2D2D2D;
+  --indicator-color: #3B82F6;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  background-color: var(--bg-color);
+  color: var(--text-active);
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* App Header & Titlebar */
+.titlebar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 48px;
+  background-color: var(--bg-header);
+  padding: 0 16px;
+  border-bottom: 1px solid var(--border-color);
+  -webkit-app-region: drag; /* Electron dragging */
+}
+
+.draggable { -webkit-app-region: drag; }
+.no-drag { -webkit-app-region: no-drag; }
+
+.window-controls {
+  display: flex;
+  gap: 8px;
+  width: 80px; /* Space for macOS buttons */
+}
+
+.control {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+.close { background-color: #FF5F56; }
+.minimize { background-color: #FFBD2E; }
+.maximize { background-color: #27C93F; }
+
+.app-title {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  color: var(--text-active);
+}
+
+.file-name {
+  font-family: 'Courier Prime', monospace;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.theme-toggle {
+  background: none;
+  border: none;
+  color: var(--text-active);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.theme-toggle:hover { background-color: var(--button-hover); }
+
+/* Toolbar */
+.toolbar {
+  display: flex;
+  align-items: center;
+  height: 56px;
+  background-color: var(--bg-header);
+  padding: 0 24px;
+  border-bottom: 1px solid var(--border-color);
+  gap: 16px;
+}
+
+.tool-btn {
+  background: none;
+  border: none;
+  color: var(--text-active);
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+.tool-btn:hover { background-color: var(--button-hover); transform: scale(1.05); }
+.tool-btn:active { transform: scale(0.95); }
+
+.text-btn { font-weight: 700; font-size: 16px; }
+
+.divider {
+  width: 1px;
+  height: 24px;
+  background-color: var(--border-color);
+}
+
+.font-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.font-size-display {
+  background-color: var(--button-hover);
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-active);
+}
+
+/* Prompter Area */
+.prompter-container {
+  flex: 1;
+  position: relative;
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: flex;
+  justify-content: center;
+  scroll-behavior: smooth;
+  padding: 0 100px;
+}
+
+/* Hide scrollbar for aesthetics */
+.prompter-container::-webkit-scrollbar { display: none; }
+
+.prompter-content {
+  width: 100%;
+  max-width: 800px;
+  margin-top: 35vh; /* Initial top padding */
+  margin-bottom: 50vh; /* End padding */
+}
+
+/* Prompter text line */
+.line {
+  font-family: 'Courier Prime', monospace;
+  font-size: 26px; /* Dynamic via JS */
+  font-weight: 400;
+  line-height: 1.6;
+  color: var(--text-inactive);
+  margin-bottom: 32px;
+  transition: color 0.3s ease, font-size 0.3s ease, font-weight 0.3s ease;
+  white-space: pre-wrap;
+}
+
+.line.title {
+  font-weight: 700;
+  font-size: calc(var(--current-font-size, 26px) * 1.5);
+  margin-bottom: 48px;
+}
+
+.line.active {
+  color: var(--text-active);
+  font-weight: 700;
+}
+
+.reading-line-indicator {
+  position: fixed;
+  top: 45vh; /* Represents where the reading focus is */
+  width: 6px;
+  height: 6px;
+  background-color: var(--indicator-color);
+  border-radius: 50%;
+  opacity: 0.6;
+}
+.reading-line-indicator.left { left: 40px; }
+.reading-line-indicator.right { right: 40px; }
+
+/* Footer */
+.status-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 40px;
+  background-color: var(--bg-header);
+  border-top: 1px solid var(--border-color);
+  padding: 0 24px;
+  color: var(--text-muted);
+}
+
+.status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #94A3B8; /* Paused grey */
+  transition: background-color 0.3s ease;
+}
+.status-dot.playing {
+  background-color: #22C55E; /* Playing green */
+}
+
+#status-text {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+}
+
+.pagination {
+  font-family: 'Courier Prime', monospace;
+  font-size: 12px;
+}
