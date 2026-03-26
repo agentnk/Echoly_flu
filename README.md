@@ -15,14 +15,16 @@ Designed for creators, presenters, and professionals who need their script visib
 ### Scrolling
 - **Auto Scroll** — Continuous smooth scrolling with adjustable speed
 - **Manual Scroll** — Step through your script using Enter/Return key
-- **Speed Presets** — Quick-apply Slow (0.5×), Normal (1.0×), or Fast (2.0×)
+- **Speed Presets** — Create, edit, and apply custom precise scroll speeds
 - **Countdown Timer** — 3-2-1 countdown before auto-scroll begins
 - **Progress Bar** — Visual position indicator at the bottom
 - **Reset Button** — Instantly rewind to top
 
 ### Professional
-- **Cue Markers** — `[PAUSE]`, `[SLOW]`, `[CUE]` render as highlighted inline tags
+- **Cue Markers** — `[PAUSE]`, `[SLOW]`, `[CUE]` trigger events and render as highlighted inline tags
 - **Auto-Pause** — Scrolling stops automatically at `[PAUSE]` markers
+- **Speed Modulation** — `[SLOW]` drops scrolling speed by half until restored by `[CUE]`
+- **Cue Flash** — `[CUE]` briefly flashes an orange overlay alert when reached
 - **Mirror Mode** — Flip text horizontally for physical teleprompter rigs
 - **Stealth Mode** — Hide from Zoom, Meet, OBS, and all screen capture
 
@@ -77,5 +79,6 @@ Echoly/
 ├── VisualEffectView.swift # Native blur background
 ├── AppTheme.swift         # Theme enum
 ├── build_app.sh           # Compile & package script
+├── echoly_icon.png        # Source image compiled into AppIcon.icns
 └── README.md
 ```
