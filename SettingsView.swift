@@ -25,6 +25,9 @@ struct SettingsView: View {
     @State private var draftFontFamily: Int = 0
     @State private var draftAlignment: Int = 0
     @State private var draftHighContrast: Bool = false
+    @State private var editablePresets: [(name: String, speed: Double)] = []
+    @State private var newPresetName: String = ""
+    @State private var newPresetSpeed: String = ""
     
     var recentFiles: [String] {
         recentFilesData.isEmpty ? [] : recentFilesData.components(separatedBy: "|||")
@@ -97,20 +100,49 @@ struct SettingsView: View {
                 
                 // Speed Presets
                 settingsSection("Speed Presets") {
-                    ForEach(speedPresets, id: \.name) { preset in
-                        Button(action: {
-                            NotificationCenter.default.post(name: NSNotification.Name("ApplySpeedPreset"), object: preset.speed)
-                            SettingsWindowManager.sharedWindow?.close()
-                        }) {
-                            HStack {
-                                Text(preset.name).font(.system(size: 12))
-                                Spacer()
-                                Text("\(String(format: "%.1f", preset.speed))×")
-                                    .font(.system(size: 11, design: .monospaced))
-                                    .foregroundColor(.secondary)
+                    ForEach(editablePresets.indices, id: \.self) { i in
+                        HStack(spacing: 6) {
+                            Button(action: {
+                                NotificationCenter.default.post(
+                                    name: NSNotification.Name("ApplySpeedPreset"),
+                                    object: editablePresets[i].speed
+                                )
+                                SettingsWindowManager.sharedWindow?.close()
+                            }) {
+                                HStack {
+                                    Text(editablePresets[i].name).font(.system(size: 12))
+                                    Spacer()
+                                    Text("\(String(format: "%.1f", editablePresets[i].speed))×")
+                                        .font(.system(size: 11, design: .monospaced))
+                                        .foregroundColor(.secondary)
+                                }
                             }
+                            .buttonStyle(.plain)
+                            Button(action: { editablePresets.remove(at: i) }) {
+                                Image(systemName: "minus.circle")
+                                    .font(.system(size: 10))
+                                    .foregroundColor(.red.opacity(0.6))
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    // Add new preset row
+                    HStack(spacing: 6) {
+                        TextField("Name", text: $newPresetName)
+                            .textFieldStyle(.roundedBorder)
+                            .font(.system(size: 11))
+                            .frame(width: 90)
+                        TextField("Speed", text: $newPresetSpeed)
+                            .textFieldStyle(.roundedBorder)
+                            .font(.system(size: 11))
+                            .frame(width: 50)
+                        Button(action: addPreset) {
+                            Image(systemName: "plus.circle")
+                                .font(.system(size: 13))
+                                .foregroundColor(.accentColor)
                         }
                         .buttonStyle(.plain)
+                        .disabled(newPresetName.isEmpty || Double(newPresetSpeed) == nil)
                     }
                 }
                 
@@ -123,8 +155,8 @@ struct SettingsView: View {
                 // Export
                 settingsSection("Export") {
                     Button(action: {
-                        ContentView.exportPDF(text: "", fontSize: 28)  // Will use notification
                         NotificationCenter.default.post(name: NSNotification.Name("ExportPDF"), object: nil)
+                        SettingsWindowManager.sharedWindow?.close()
                     }) {
                         HStack(spacing: 6) {
                             Image(systemName: "arrow.down.doc").font(.system(size: 10))
@@ -170,6 +202,10 @@ struct SettingsView: View {
                         fontFamily = draftFontFamily
                         textAlignment = draftAlignment
                         highContrast = draftHighContrast
+                        // Persist edited speed presets
+                        speedPresetsData = editablePresets
+                            .map { "\($0.name):\(String(format: "%.1f", $0.speed))" }
+                            .joined(separator: "|||")
                         SettingsWindowManager.sharedWindow?.close()
                     }
                     .keyboardShortcut(.defaultAction)
@@ -189,10 +225,18 @@ struct SettingsView: View {
             draftFontFamily = fontFamily
             draftAlignment = textAlignment
             draftHighContrast = highContrast
+            editablePresets = speedPresets
         }
     }
     
     // MARK: - Helpers
+    
+    func addPreset() {
+        guard !newPresetName.isEmpty, let spd = Double(newPresetSpeed) else { return }
+        editablePresets.append((name: newPresetName, speed: spd))
+        newPresetName = ""
+        newPresetSpeed = ""
+    }
     
     @ViewBuilder
     func settingsSection<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {

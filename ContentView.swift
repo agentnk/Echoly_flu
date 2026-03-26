@@ -15,9 +15,10 @@ struct ContentView: View {
     @AppStorage("textAlignment") private var textAlignment: Int = 0 // 0=left, 1=center, 2=right
     @AppStorage("highContrast") private var highContrast: Bool = false
     
-    @State private var text: String = "Welcome to Echoly.\n\nDrop a file here, or tap the folder icon to open one.\n\nUse [PAUSE] markers in your script for auto-pause."
+    @State private var text: String = "Welcome to Echoly.\n\nDrop a file here, or tap the folder icon to open one.\n\nUse [PAUSE] markers in your script for auto-pause.\nUse [SLOW] to slow down, and [CUE] to highlight a cue point."
     @State private var fontSize: CGFloat = 28
     @State private var speed: CGFloat = 1.0
+    @State private var baseSpeed: CGFloat = 1.0 // stored to restore after [SLOW]
     @State private var isPlaying = false
     @State private var scrollPosition: CGFloat = 0
     @State private var timer: Timer?
@@ -29,6 +30,7 @@ struct ContentView: View {
     @State private var containerHeight: CGFloat = 0
     @State private var isTargeted = false
     @State private var currentSpeedPreset: String = ""
+    @State private var cueFlash: Bool = false // for [CUE] highlight pulse
     
     var theme: AppTheme { AppTheme(rawValue: themePreference) ?? .system }
     
@@ -66,9 +68,9 @@ struct ContentView: View {
     
     var frameAlignment: Alignment {
         switch textAlignment {
-        case 1: return .topLeading
-        case 2: return .topTrailing
-        default: return .topLeading
+        case 1: return .center
+        case 2: return .trailing
+        default: return .leading
         }
     }
     
@@ -161,11 +163,18 @@ struct ContentView: View {
                                 .padding(.horizontal, 20)
                                 .frame(maxWidth: .infinity, alignment: frameAlignment)
                                 .background(GeometryReader { textGeo in
-                                    Color.clear.onAppear { textHeight = textGeo.size.height }
-                                    .onChange(of: text) { _ in textHeight = textGeo.size.height }
+                                    Color.clear
+                                        .onAppear { textHeight = textGeo.size.height }
+                                        .onChange(of: text) { textHeight = textGeo.size.height }
+                                        .onChange(of: textGeo.size) { textHeight = textGeo.size.height }
                                 })
                                 .offset(y: max(0, geo.size.height * 0.4) - scrollPosition)
                                 .scaleEffect(x: mirrorMode ? -1 : 1, y: 1)
+                                .overlay(
+                                    cueFlash
+                                        ? Color.orange.opacity(0.08).allowsHitTesting(false)
+                                        : Color.clear.allowsHitTesting(false)
+                                )
                         }
                     }
                     .onAppear { containerHeight = geo.size.height }
@@ -218,7 +227,7 @@ struct ContentView: View {
         .onDrop(of: [.fileURL], isTargeted: $isTargeted) { providers in
             handleDrop(providers: providers)
         }
-        .onChange(of: hideFromScreenSharing) { newValue in
+        .onChange(of: hideFromScreenSharing) { _, newValue in
             if let window = NSApplication.shared.windows.first(where: { $0.title == "Echoly" }) {
                 window.sharingType = newValue ? .none : .readOnly
             }
@@ -239,7 +248,19 @@ struct ContentView: View {
             if let path = notif.object as? String { loadFile(from: URL(fileURLWithPath: path)) }
         }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ApplySpeedPreset"))) { notif in
-            if let spd = notif.object as? Double { speed = CGFloat(spd) }
+            if let spd = notif.object as? Double {
+                speed = CGFloat(spd)
+                baseSpeed = CGFloat(spd)
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ExportPDF"))) { _ in
+            ContentView.exportPDF(text: text, fontSize: fontSize)
+        }
+        .onChange(of: scrollMode) { _, newMode in
+            // If user switches to manual mode while auto-scroll is running, stop it
+            if newMode == 1 && isPlaying {
+                togglePlay()
+            }
         }
     }
     
@@ -255,21 +276,28 @@ struct ContentView: View {
                 .lineSpacing(lineSpace)
                 .multilineTextAlignment(alignment)
         } else {
-            let attributed = segs.reduce(Text("")) { result, seg in
-                if seg.isCue {
-                    return result + Text(seg.text)
-                        .font(.system(size: fontSize * 0.75, weight: .bold, design: .rounded))
-                        .foregroundColor(.orange)
-                } else {
-                    return result + Text(seg.text)
-                        .font(.system(size: fontSize, weight: .light, design: fontDesign))
-                        .foregroundColor(highContrast ? .white : .primary.opacity(0.85))
-                }
-            }
-            attributed
+            Text(buildAttributedString(from: segs))
                 .lineSpacing(lineSpace)
                 .multilineTextAlignment(alignment)
         }
+    }
+    
+    func buildAttributedString(from segs: [(text: String, isCue: Bool)]) -> AttributedString {
+        var result = AttributedString()
+        for seg in segs {
+            if seg.isCue {
+                var part = AttributedString(seg.text)
+                part.font = .system(size: fontSize * 0.75, weight: .bold, design: .rounded)
+                part.foregroundColor = .orange
+                result += part
+            } else {
+                var part = AttributedString(seg.text)
+                part.font = .system(size: fontSize, weight: .light, design: fontDesign)
+                part.foregroundColor = highContrast ? .white : Color.primary.opacity(0.85)
+                result += part
+            }
+        }
+        return result
     }
     
     // MARK: - Toolbar Button
@@ -360,12 +388,14 @@ struct ContentView: View {
     func togglePlay() {
         isPlaying.toggle()
         if isPlaying {
+            baseSpeed = speed // snapshot current speed as base
             timer = Timer.scheduledTimer(withTimeInterval: 0.02, repeats: true) { _ in
                 scrollPosition += speed
                 checkForCuePause()
             }
         } else {
             timer?.invalidate(); timer = nil
+            speed = baseSpeed // restore base speed on pause
         }
     }
     
@@ -381,12 +411,25 @@ struct ContentView: View {
         
         if window.localizedCaseInsensitiveContains("[PAUSE]") {
             togglePlay()
+        } else if window.localizedCaseInsensitiveContains("[SLOW]") {
+            // Halve the speed temporarily until [CUE] or end restores it
+            if speed > baseSpeed * 0.6 {
+                speed = max(0.3, baseSpeed * 0.5)
+            }
+        } else if window.localizedCaseInsensitiveContains("[CUE]") {
+            // Restore speed and flash the overlay
+            speed = baseSpeed
+            withAnimation(.easeInOut(duration: 0.15)) { cueFlash = true }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                withAnimation(.easeOut(duration: 0.4)) { cueFlash = false }
+            }
         }
     }
     
     // MARK: - Export PDF
     
     static func exportPDF(text: String, fontSize: CGFloat) {
+        guard !text.isEmpty else { return }
         let panel = NSSavePanel()
         panel.allowedContentTypes = [.pdf]
         panel.nameFieldStringValue = "script.pdf"
@@ -394,7 +437,6 @@ struct ContentView: View {
             let pageRect = CGRect(x: 0, y: 0, width: 612, height: 792) // US Letter
             let textRect = pageRect.insetBy(dx: 50, dy: 50)
             
-            let renderer = NSGraphicsContext.current
             let pdfData = NSMutableData()
             
             guard let consumer = CGDataConsumer(data: pdfData as CFMutableData),
@@ -402,7 +444,7 @@ struct ContentView: View {
             
             let paragraphs = text.components(separatedBy: "\n")
             var currentY: CGFloat = textRect.maxY
-            let font = NSFont.monospacedSystemFont(ofSize: fontSize * 0.4, weight: .regular)
+            let font = NSFont.monospacedSystemFont(ofSize: max(fontSize * 0.4, 12), weight: .regular)
             let attrs: [NSAttributedString.Key: Any] = [
                 .font: font,
                 .foregroundColor: NSColor.black
@@ -411,19 +453,33 @@ struct ContentView: View {
             context.beginPDFPage(nil)
             
             for para in paragraphs {
-                let attrStr = NSAttributedString(string: para, attributes: attrs)
+                let attrStr = NSAttributedString(string: para.isEmpty ? " " : para, attributes: attrs)
                 let framesetter = CTFramesetterCreateWithAttributedString(attrStr)
-                let size = CTFramesetterSuggestFrameSizeWithConstraints(framesetter, CFRange(location: 0, length: attrStr.length), nil, CGSize(width: textRect.width, height: .greatestFiniteMagnitude), nil)
+                let size = CTFramesetterSuggestFrameSizeWithConstraints(
+                    framesetter,
+                    CFRange(location: 0, length: attrStr.length),
+                    nil,
+                    CGSize(width: textRect.width, height: .greatestFiniteMagnitude),
+                    nil
+                )
                 
-                currentY -= size.height + 4
+                currentY -= size.height + 6
                 if currentY < textRect.minY {
                     context.endPDFPage()
                     context.beginPDFPage(nil)
-                    currentY = textRect.maxY - size.height - 4
+                    currentY = textRect.maxY - size.height - 6
                 }
                 
-                let path = CGPath(rect: CGRect(x: textRect.minX, y: currentY, width: textRect.width, height: size.height), transform: nil)
-                let frame = CTFramesetterCreateFrame(framesetter, CFRange(location: 0, length: attrStr.length), path, nil)
+                let path = CGPath(
+                    rect: CGRect(x: textRect.minX, y: currentY, width: textRect.width, height: size.height),
+                    transform: nil
+                )
+                let frame = CTFramesetterCreateFrame(
+                    framesetter,
+                    CFRange(location: 0, length: attrStr.length),
+                    path,
+                    nil
+                )
                 CTFrameDraw(frame, context)
             }
             
