@@ -37,6 +37,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             window.isOpaque = false
             window.backgroundColor = .clear
             window.title = "Echoly"
+            
+            // Screen sharing check
+            let hide = UserDefaults.standard.bool(forKey: "hideFromScreenSharing")
+            window.sharingType = hide ? .none : .readOnly
         }
 
         NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
@@ -77,13 +81,20 @@ struct SettingsView: View {
     @AppStorage("lineSpace") private var lineSpace: Double = 8.0
     @AppStorage("scrollMode") private var scrollMode: Int = 0 
     @AppStorage("linesPerScroll") private var linesPerScroll: Int = 1
+    @AppStorage("hideFromScreenSharing") private var hideFromScreenSharing: Bool = false
+    
+    @State private var draftThemePreference: Int = 0
+    @State private var draftLineSpace: Double = 8.0
+    @State private var draftScrollMode: Int = 0 
+    @State private var draftLinesPerScroll: Int = 1
+    @State private var draftHideFromScreenSharing: Bool = false
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 20) {
+        VStack(alignment: .leading, spacing: 16) {
             
-            VStack(alignment: .leading, spacing: 10) {
+            VStack(alignment: .leading, spacing: 8) {
                 Text("Display Theme").font(.subheadline).bold()
-                Picker("Theme", selection: $themePreference) {
+                Picker("Theme", selection: $draftThemePreference) {
                     Text("System Default").tag(0)
                     Text("Light").tag(1)
                     Text("Dark").tag(2)
@@ -93,32 +104,66 @@ struct SettingsView: View {
             
             Divider()
             
-            VStack(alignment: .leading, spacing: 10) {
-                Text("Line Spacing: \(Int(lineSpace))").font(.subheadline).bold()
-                Slider(value: $lineSpace, in: 0...40, step: 2)
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Line Spacing: \(Int(draftLineSpace))").font(.subheadline).bold()
+                Slider(value: $draftLineSpace, in: 0...40, step: 2)
             }
             
             Divider()
             
-            VStack(alignment: .leading, spacing: 10) {
+            VStack(alignment: .leading, spacing: 8) {
                 Text("Controls").font(.subheadline).bold()
                 
-                Picker("Line Scroll Mode", selection: $scrollMode) {
+                Picker("Line Scroll Mode", selection: $draftScrollMode) {
                     Text("Auto scroll").tag(0)
                     Text("Manual scrolling (Enter / Return)").tag(1)
                 }
                 .labelsHidden()
                 
-                Picker("Lines per one scroll", selection: $linesPerScroll) {
+                Picker("Lines per one scroll", selection: $draftLinesPerScroll) {
                     Text("1 Line").tag(1)
                     Text("3 Lines").tag(3)
                     Text("5 Lines").tag(5)
                 }
                 .labelsHidden()
             }
+            
+            Divider()
+            
+            Toggle("Hide app from screen sharing", isOn: $draftHideFromScreenSharing)
+                .font(.subheadline).bold()
+                .help("Checking this ensures the teleprompter window is invisible in Zoom/Google Meet/etc.")
+            
+            Divider()
+            
+            HStack {
+                Spacer()
+                Button("Cancel") {
+                    SettingsWindowManager.sharedWindow?.close()
+                }
+                .keyboardShortcut(.cancelAction)
+                
+                Button("Save") {
+                    themePreference = draftThemePreference
+                    lineSpace = draftLineSpace
+                    scrollMode = draftScrollMode
+                    linesPerScroll = draftLinesPerScroll
+                    hideFromScreenSharing = draftHideFromScreenSharing
+                    
+                    SettingsWindowManager.sharedWindow?.close()
+                }
+                .keyboardShortcut(.defaultAction)
+            }
         }
         .padding(24)
         .frame(width: 350)
+        .onAppear {
+            draftThemePreference = themePreference
+            draftLineSpace = lineSpace
+            draftScrollMode = scrollMode
+            draftLinesPerScroll = linesPerScroll
+            draftHideFromScreenSharing = hideFromScreenSharing
+        }
     }
 }
 
@@ -128,7 +173,7 @@ class SettingsWindowManager {
     static func show() {
         if sharedWindow == nil {
             let window = NSWindow(
-                contentRect: NSRect(x: 0, y: 0, width: 350, height: 350),
+                contentRect: NSRect(x: 0, y: 0, width: 350, height: 400),
                 styleMask: [.titled, .closable],
                 backing: .buffered,
                 defer: false
@@ -137,7 +182,7 @@ class SettingsWindowManager {
             window.contentView = NSHostingView(rootView: SettingsView())
             window.center()
             window.isReleasedWhenClosed = false
-            window.level = .floating // Match the main app's on-top behavior
+            window.level = .floating 
             sharedWindow = window
             
             NotificationCenter.default.addObserver(forName: NSWindow.willCloseNotification, object: window, queue: .main) { _ in
@@ -153,6 +198,7 @@ struct ContentView: View {
     @AppStorage("lineSpace") private var lineSpace: Double = 8.0
     @AppStorage("scrollMode") private var scrollMode: Int = 0 
     @AppStorage("linesPerScroll") private var linesPerScroll: Int = 1
+    @AppStorage("hideFromScreenSharing") private var hideFromScreenSharing: Bool = false
     
     @State private var text: String = "Welcome to Echoly!\n\nOpen a .txt or .docx file to begin.\n\nUse the Gear icon to access Settings."
     @State private var fontSize: CGFloat = 32
@@ -222,6 +268,11 @@ struct ContentView: View {
         }
         .edgesIgnoringSafeArea(.top)
         .preferredColorScheme(theme.colorScheme)
+        .onChange(of: hideFromScreenSharing) { newValue in
+            if let window = NSApplication.shared.windows.first(where: { $0.title == "Echoly" }) {
+                window.sharingType = newValue ? .none : .readOnly
+            }
+        }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ManualScroll"))) { _ in
             if scrollMode == 1 { manualScroll() }
         }
