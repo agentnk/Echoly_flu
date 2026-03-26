@@ -12,7 +12,7 @@ mkdir -p "$BIN_DIR"
 mkdir -p "$RES_DIR"
 
 echo "Compiling swift application..."
-swiftc -parse-as-library Echoly.swift -o "$BIN_DIR/$APP_NAME"
+swiftc -parse-as-library *.swift -o "$BIN_DIR/$APP_NAME"
 
 # Copy Icon if exists
 ICON_KEY=""

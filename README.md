@@ -2,21 +2,28 @@
 
 A lightweight, purely native, always-on-top floating teleprompter for macOS, built with Swift and SwiftUI.
 
-Echoly is designed for creators, presenters, and professionals who need to keep their script or notes visible on screen while recording videos or taking video calls. It floats seamlessly above all other windows and offers smooth continuous scrolling.
+Echoly is designed for creators, presenters, and professionals who need to keep their script or notes visible on screen while recording videos or taking video calls. It floats seamlessly above all other windows and offers advanced control over scrolling, styling, and presence.
 
-## Features
+## Core Features
 
-- **Always On Top:** The prompter window continuously stays above all other applications.
-- **Native Look & Feel:** Uses macOS native Visual Effect views for a beautifully blurred, translucent background.
-- **Continuous Scrolling:** Pixel-perfect smooth scrolling engine.
-- **Customizable Font Size:** Adjust text size on the fly for perfect readability at a distance.
-- **Plain Text Support:** Easily load your scripts from standard `.txt` files.
+- **Natively Floating:** The prompter window continuously stays above all other applications natively using AppKit's `.floating` window level.
+- **Stealth Mode (Screen Share Isolation):** Hide the teleprompter entirely from Zoom, Google Meet, or OBS screen captures simply by enabling the "Hide app from screen sharing" option in Settings.
+- **Glassmorphism UI:** Built using macOS native Visual Effect views for a beautifully blurred, translucent background.
+- **Script Support:** Load scripts securely and natively from standard `.txt` files or directly parse Microsoft Word `.docx` documents instantly across the app.
+
+## Advanced Controls
+
+- **Auto Continuous Scrolling:** Pixel-perfect smooth scrolling engine using internal Timers.
+- **Manual Stepped Scrolling:** Need precision? Switch to Manual mode and use your `Enter` or `Return` keys to discrete jump text by customizable increments (1, 3, or 5 lines).
+- **Customizable Typography:** Adjust text size on the fly for perfect readability and tweak global Line Spacing via Settings.
+- **Theming & Preferences:** Choose between Light, Dark, or System Default themes. Settings are durably persisted across sessions so Echoly remembers your workflow.
 
 ## Keyboard Shortcuts
 
-- **Spacebar**: Play/Pause scrolling.
-- **Up Arrow**: Increase the scroll speed.
-- **Down Arrow**: Decrease the scroll speed.
+- **Spacebar**: Play/Pause continuous scrolling (Auto mode only).
+- **Enter/Return**: Manually scroll down (Manual mode only).
+- **Up Arrow**: Increase the continuous scroll speed.
+- **Down Arrow**: Decrease the continuous scroll speed.
 
 ## Prerequisites
 
@@ -34,13 +41,13 @@ Echoly is designed for creators, presenters, and professionals who need to keep 
    ```bash
    bash build_app.sh
    ```
-4. The script compiles the application and generates an `Echoly.app` bundle in the same folder.
+4. The script cleanly compiles the domain-separated Swift files and packages an `Echoly.app` bundle right in the project folder.
 5. Double click `Echoly.app` or run `open Echoly.app` in your terminal to launch the teleprompter!
 
-## How to Use
+## Usage Guide
 
 1. Launch **Echoly**.
-2. Click the **Folder Icon** in the top left to select your `.txt` script.
-3. Position the window wherever you want on your screen (e.g., just beneath your webcam).
-4. Use the `A+` and `A-` buttons to adjust the text size.
-5. Press the **Play Icon** or hit the **Spacebar** to begin scrolling!
+2. Click the **Folder Icon** to load your `.txt` or `.docx` script.
+3. Click the **Gear Icon** to customize your theme, line spacing, layout, and stealth configurations. Be sure to hit `Save`.
+4. Position the window just beneath your webcam!
+5. Depending on your Settings, use `Spacebar` to auto-scroll or `Return` to jump lines manually. Enjoy!
