@@ -40,13 +40,16 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
-            if event.keyCode == 49 { 
+            if event.keyCode == 36 { // Enter / Return
+                NotificationCenter.default.post(name: NSNotification.Name("ManualScroll"), object: nil)
+                return nil
+            } else if event.keyCode == 49 { // Spacebar
                 NotificationCenter.default.post(name: NSNotification.Name("TogglePlay"), object: nil)
                 return nil 
-            } else if event.keyCode == 126 { 
+            } else if event.keyCode == 126 { // Up
                 NotificationCenter.default.post(name: NSNotification.Name("SpeedUp"), object: nil)
                 return nil
-            } else if event.keyCode == 125 { 
+            } else if event.keyCode == 125 { // Down
                 NotificationCenter.default.post(name: NSNotification.Name("SpeedDown"), object: nil)
                 return nil
             }
@@ -72,11 +75,11 @@ struct VisualEffectView: NSViewRepresentable {
 struct SettingsView: View {
     @AppStorage("themePreference") private var themePreference: Int = 0
     @AppStorage("lineSpace") private var lineSpace: Double = 8.0
-    @Environment(\.presentationMode) var presentationMode
+    @AppStorage("scrollMode") private var scrollMode: Int = 0 
+    @AppStorage("linesPerScroll") private var linesPerScroll: Int = 1
     
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
-            Text("Settings").font(.headline)
             
             VStack(alignment: .leading, spacing: 10) {
                 Text("Display Theme").font(.subheadline).bold()
@@ -95,29 +98,67 @@ struct SettingsView: View {
                 Slider(value: $lineSpace, in: 0...40, step: 2)
             }
             
-            HStack {
-                Spacer()
-                Button("Close") {
-                    presentationMode.wrappedValue.dismiss()
+            Divider()
+            
+            VStack(alignment: .leading, spacing: 10) {
+                Text("Controls").font(.subheadline).bold()
+                
+                Picker("Line Scroll Mode", selection: $scrollMode) {
+                    Text("Auto scroll").tag(0)
+                    Text("Manual scrolling (Enter / Return)").tag(1)
                 }
-                .keyboardShortcut(.defaultAction)
+                .labelsHidden()
+                
+                Picker("Lines per one scroll", selection: $linesPerScroll) {
+                    Text("1 Line").tag(1)
+                    Text("3 Lines").tag(3)
+                    Text("5 Lines").tag(5)
+                }
+                .labelsHidden()
             }
         }
-        .padding()
-        .frame(width: 320)
+        .padding(24)
+        .frame(width: 350)
+    }
+}
+
+class SettingsWindowManager {
+    static var sharedWindow: NSWindow?
+    
+    static func show() {
+        if sharedWindow == nil {
+            let window = NSWindow(
+                contentRect: NSRect(x: 0, y: 0, width: 350, height: 350),
+                styleMask: [.titled, .closable],
+                backing: .buffered,
+                defer: false
+            )
+            window.title = "Echoly Settings"
+            window.contentView = NSHostingView(rootView: SettingsView())
+            window.center()
+            window.isReleasedWhenClosed = false
+            window.level = .floating // Match the main app's on-top behavior
+            sharedWindow = window
+            
+            NotificationCenter.default.addObserver(forName: NSWindow.willCloseNotification, object: window, queue: .main) { _ in
+                sharedWindow = nil
+            }
+        }
+        sharedWindow?.makeKeyAndOrderFront(nil)
     }
 }
 
 struct ContentView: View {
     @AppStorage("themePreference") private var themePreference: Int = 0
     @AppStorage("lineSpace") private var lineSpace: Double = 8.0
+    @AppStorage("scrollMode") private var scrollMode: Int = 0 
+    @AppStorage("linesPerScroll") private var linesPerScroll: Int = 1
     
     @State private var text: String = "Welcome to Echoly!\n\nOpen a .txt or .docx file to begin.\n\nUse the Gear icon to access Settings."
     @State private var fontSize: CGFloat = 32
     @State private var speed: CGFloat = 1.0
     @State private var isPlaying = false
     @State private var scrollPosition: CGFloat = 0
-    @State private var showingSettings = false
     @State private var timer: Timer?
     
     var theme: AppTheme { AppTheme(rawValue: themePreference) ?? .system }
@@ -134,11 +175,18 @@ struct ContentView: View {
                 
                 Spacer()
                 
-                Button(action: togglePlay) { 
-                    Image(systemName: isPlaying ? "pause.fill" : "play.fill") 
-                        .foregroundColor(isPlaying ? .red : .primary)
+                if scrollMode == 0 {
+                    Button(action: togglePlay) { 
+                        Image(systemName: isPlaying ? "pause.fill" : "play.fill") 
+                            .foregroundColor(isPlaying ? .red : .primary)
+                    }
+                    .help("Play/Pause (Spacebar)")
+                } else {
+                    Button(action: manualScroll) { 
+                        Image(systemName: "arrow.down") 
+                    }
+                    .help("Scroll Down (Enter/Return)")
                 }
-                .help("Play/Pause (Spacebar)")
                 
                 Spacer()
                 
@@ -148,13 +196,10 @@ struct ContentView: View {
                         Button(action: { if fontSize < 120 { fontSize += 2 } }) { Text("A+") }
                     }
                     
-                    Button(action: { showingSettings.toggle() }) {
+                    Button(action: { SettingsWindowManager.show() }) {
                         Image(systemName: "gearshape.fill")
                     }
                     .help("Settings")
-                    .popover(isPresented: $showingSettings) {
-                        SettingsView()
-                    }
                 }
             }
             .font(.system(size: 18, weight: .semibold))
@@ -177,14 +222,24 @@ struct ContentView: View {
         }
         .edgesIgnoringSafeArea(.top)
         .preferredColorScheme(theme.colorScheme)
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ManualScroll"))) { _ in
+            if scrollMode == 1 { manualScroll() }
+        }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("TogglePlay"))) { _ in
-            togglePlay()
+            if scrollMode == 0 { togglePlay() }
         }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("SpeedUp"))) { _ in
-            speed += 0.5
+            if scrollMode == 0 { speed += 0.5 }
         }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("SpeedDown"))) { _ in
-            speed = max(0.5, speed - 0.5)
+            if scrollMode == 0 { speed = max(0.5, speed - 0.5) }
+        }
+    }
+    
+    func manualScroll() {
+        let jump = (fontSize * 1.25 + CGFloat(lineSpace)) * CGFloat(linesPerScroll)
+        withAnimation(.easeInOut(duration: 0.25)) {
+            scrollPosition += jump
         }
     }
     
