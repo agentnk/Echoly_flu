@@ -14,14 +14,7 @@ mkdir -p "$RES_DIR"
 echo "Compiling swift application..."
 swiftc -parse-as-library *.swift -o "$BIN_DIR/$APP_NAME"
 
-# Copy Icon if exists
-ICON_KEY=""
-if [ -f "icon.icns" ]; then
-    cp "icon.icns" "$RES_DIR/AppIcon.icns"
-    ICON_KEY="<key>CFBundleIconFile</key><string>AppIcon</string>"
-fi
-
-# Create Info.plist to make it a legit macOS app
+# Create Info.plist
 cat > "${APP_DIR}/Contents/Info.plist" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -41,7 +34,6 @@ cat > "${APP_DIR}/Contents/Info.plist" <<EOF
     <string>11.0</string>
     <key>NSHighResolutionCapable</key>
     <true/>
-    ${ICON_KEY}
 </dict>
 </plist>
 EOF
