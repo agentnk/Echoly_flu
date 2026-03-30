@@ -9,7 +9,6 @@ struct EcholyApp: App {
         WindowGroup {
             ContentView()
                 .frame(minWidth: 400, minHeight: 450)
-                .background(VisualEffectView(material: .hudWindow, blendingMode: .behindWindow))
         }
         .windowStyle(HiddenTitleBarWindowStyle())
     }
@@ -21,8 +20,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         if let window = NSApplication.shared.windows.first {
             window.level = .floating 
-            window.isOpaque = false
-            window.backgroundColor = .clear
             window.title = "Echoly"
             
             // Restore saved window frame

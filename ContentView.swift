@@ -86,6 +86,7 @@ struct ContentView: View {
             )
             .padding(.horizontal, 20)
             .padding(.vertical, 8)
+            .padding(.top, 20)
             
             Divider().background(Color.primary.opacity(0.08))
             
@@ -190,6 +191,7 @@ struct ContentView: View {
                 progress: progress,
                 isPlaying: isPlaying
             )
+            .padding(.bottom, 12)
         }
         .opacity(windowOpacity)
         .edgesIgnoringSafeArea(.top)
