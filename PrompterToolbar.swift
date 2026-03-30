@@ -2,6 +2,7 @@ import SwiftUI
 
 struct PrompterToolbar: View {
     @AppStorage("scrollMode") private var scrollMode: Int = 0 
+    @AppStorage("themePreference") private var themePreference: Int = 0
     
     var isPlaying: Bool
     var speed: CGFloat
@@ -14,58 +15,116 @@ struct PrompterToolbar: View {
     let manualScrollAction: () -> Void
     
     var body: some View {
-        HStack(spacing: 14) {
-            toolbarButton("folder", action: openFileAction, help: "Open")
-            toolbarButton("arrow.counterclockwise", action: resetScrollAction, help: "Reset")
-            
-            Spacer()
-            
-            if scrollMode == 0 {
-                toolbarButton(
-                    isPlaying ? "pause" : "play",
-                    action: startWithCountdownAction,
-                    help: "Play / Pause",
-                    tint: isPlaying ? .red.opacity(0.8) : nil
-                )
-                Text("\(String(format: "%.1f", speed))×")
-                    .font(.system(size: 10, weight: .medium, design: .monospaced))
-                    .foregroundColor(.secondary.opacity(0.6))
-            } else {
-                toolbarButton("chevron.down", action: manualScrollAction, help: "Next")
+        HStack(spacing: 16) {
+            // Left: Logo and Open Button
+            HStack(spacing: 16) {
+                // Mock Logo
+                HStack(spacing: 6) {
+                    Image(systemName: "person.wave.2.fill")
+                        .font(.system(size: 14))
+                        .padding(4)
+                        .background(Color.primary)
+                        .foregroundColor(Color(NSColor.windowBackgroundColor))
+                        .clipShape(RoundedRectangle(cornerRadius: 6))
+                    
+                    Text("ECHOLY")
+                        .font(.system(size: 11, weight: .bold, design: .default))
+                        .tracking(1.0)
+                }
+                
+                Button(action: openFileAction) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "folder.fill")
+                            .font(.system(size: 13))
+                        Text("Open")
+                            .font(.system(size: 12, weight: .medium))
+                    }
+                    .foregroundColor(.primary)
+                }
+                .buttonStyle(.plain)
             }
             
             Spacer()
             
-            HStack(spacing: 10) {
-                toolbarButton("minus", action: { if fontSize > 12 { fontSize -= 2 } }, help: "Smaller")
-                Text("\(Int(fontSize))")
-                    .font(.system(size: 10, weight: .medium, design: .monospaced))
-                    .foregroundColor(.secondary.opacity(0.5))
-                    .frame(width: 20)
-                toolbarButton("plus", action: { if fontSize < 120 { fontSize += 2 } }, help: "Larger")
+            // Center Playback Controls
+            HStack(spacing: 18) {
+                Button(action: resetScrollAction) {
+                    Image(systemName: "backward.end.alt.fill")
+                        .font(.system(size: 12))
+                        .foregroundColor(.primary)
+                }
+                .buttonStyle(.plain)
                 
-                toolbarButton(
-                    isEditing ? "pencil.slash" : "pencil",
-                    action: { isEditing.toggle() },
-                    help: isEditing ? "Done" : "Edit",
-                    tint: isEditing ? .orange.opacity(0.7) : nil
-                )
+                Button(action: {
+                    if scrollMode == 0 { startWithCountdownAction() } else { manualScrollAction() }
+                }) {
+                    ZStack {
+                        Circle()
+                            .fill(Color.primary)
+                            .frame(width: 32, height: 32)
+                        Image(systemName: isPlaying ? "pause.fill" : "play.fill")
+                            .font(.system(size: 13, weight: .bold))
+                            .foregroundColor(Color(NSColor.windowBackgroundColor))
+                    }
+                }
+                .buttonStyle(.plain)
                 
-                toolbarButton("gearshape", action: { SettingsWindowManager.show() }, help: "Settings")
+                Button(action: { manualScrollAction() }) {
+                    Image(systemName: "forward.end.alt.fill")
+                        .font(.system(size: 12))
+                        .foregroundColor(.primary)
+                }
+                .buttonStyle(.plain)
+            }
+            
+            Spacer()
+            
+            // Right Controls
+            HStack(spacing: 16) {
+                // Zoom
+                HStack(spacing: 8) {
+                    Button(action: { if fontSize > 12 { fontSize -= 2 } }) {
+                        Text("A-")
+                            .font(.system(size: 11, weight: .bold))
+                    }
+                    .buttonStyle(.plain)
+                    
+                    Text("\(Int(fontSize))pt")
+                        .font(.system(size: 10, weight: .medium, design: .monospaced))
+                        .padding(.vertical, 4)
+                        .padding(.horizontal, 8)
+                        .background(Color.primary.opacity(0.06))
+                        .clipShape(RoundedRectangle(cornerRadius: 6))
+                        .frame(minWidth: 42, alignment: .center)
+                    
+                    Button(action: { if fontSize < 120 { fontSize += 2 } }) {
+                        Text("A+")
+                            .font(.system(size: 11, weight: .bold))
+                    }
+                    .buttonStyle(.plain)
+                }
+                .foregroundColor(.primary)
+                
+                Divider().frame(height: 16)
+                
+                // Theme Toggle
+                Button(action: {
+                    themePreference = themePreference == 2 ? 1 : 2 // Toggle Dark/Light
+                }) {
+                    Image(systemName: themePreference == 2 ? "circle.lefthalf.filled" : "circle.righthalf.filled")
+                        .font(.system(size: 14))
+                }
+                .buttonStyle(.plain)
+                .foregroundColor(.primary)
+                
+                // Settings
+                Button(action: { SettingsWindowManager.show() }) {
+                    Image(systemName: "gearshape.fill")
+                        .font(.system(size: 14))
+                }
+                .buttonStyle(.plain)
+                .foregroundColor(.primary)
             }
         }
-    }
-    
-    @ViewBuilder
-    private func toolbarButton(_ icon: String, action: @escaping () -> Void, help: String, tint: Color? = nil) -> some View {
-        Button(action: action) {
-            Image(systemName: icon)
-                .font(.system(size: 12, weight: .medium))
-                .foregroundColor(tint ?? .primary.opacity(0.55))
-                .frame(width: 24, height: 24)
-                .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .help(help)
     }
 }

@@ -14,8 +14,8 @@ struct ContentView: View {
     @AppStorage("textAlignment") private var textAlignment: Int = 0 // 0=left, 1=center, 2=right
     @AppStorage("highContrast") private var highContrast: Bool = false
     
-    @State private var text: String = "Welcome to Echoly.\n\nDrop a file here, or tap the folder icon to open one.\n\nUse [PAUSE] markers in your script for auto-pause.\nUse [SLOW] to slow down, and [CUE] to highlight a cue point."
-    @State private var fontSize: CGFloat = 28
+    @State private var text: String = "Welcome to Echoly - Web Teleprompter\n\nThis is a sample speech to demonstrate the app.\n\nPress the Play button to begin.\n\nThen press Return or Enter to advance through your script.\n\nYou can adjust the font size using the controls in the toolbar."
+    @State private var fontSize: CGFloat = 48
     @State private var speed: CGFloat = 1.0
     @State private var baseSpeed: CGFloat = 1.0 // stored to restore after [SLOW]
     @State private var isPlaying = false
@@ -62,9 +62,16 @@ struct ContentView: View {
         }
     }
     
+    var currentFileName: String {
+        if let firstPath = recentFilesData.components(separatedBy: "|||").first, !firstPath.isEmpty {
+            return URL(fileURLWithPath: firstPath).lastPathComponent
+        }
+        return "demo-speech.txt"
+    }
+    
     var body: some View {
         VStack(spacing: 0) {
-            Color.clear.frame(height: 28)
+            Color.clear.frame(height: 12)
             
             // Toolbar
             PrompterToolbar(
@@ -77,10 +84,22 @@ struct ContentView: View {
                 startWithCountdownAction: startWithCountdown,
                 manualScrollAction: manualScroll
             )
-            .padding(.horizontal, 16)
-            .padding(.vertical, 6)
+            .padding(.horizontal, 20)
+            .padding(.vertical, 8)
             
-            Rectangle().fill(Color.primary.opacity(0.06)).frame(height: 1)
+            Divider().background(Color.primary.opacity(0.08))
+            
+            // Filename header
+            HStack(spacing: 6) {
+                Image(systemName: "doc.text")
+                    .font(.system(size: 10))
+                Text(currentFileName)
+                    .font(.system(size: 10, weight: .medium, design: .monospaced))
+                Spacer()
+            }
+            .foregroundColor(.secondary.opacity(0.6))
+            .padding(.horizontal, 20)
+            .padding(.vertical, 8)
 
             // Main Prompter
             ZStack {
@@ -88,14 +107,14 @@ struct ContentView: View {
                     Group {
                         if isEditing {
                             TextEditor(text: $text)
-                                .font(.system(size: fontSize, weight: .light, design: fontDesign))
+                                .font(.system(size: fontSize, weight: .bold, design: fontDesign))
                                 .lineSpacing(lineSpace)
-                                .padding(.horizontal, 20)
+                                .padding(.horizontal, 40)
                                 .scrollContentBackground(.hidden)
                                 .background(Color.clear)
                         } else {
                             cueRenderedText()
-                                .padding(.horizontal, 20)
+                                .padding(.horizontal, 40)
                                 .frame(maxWidth: .infinity, alignment: frameAlignment)
                                 .background(GeometryReader { textGeo in
                                     Color.clear
@@ -110,9 +129,39 @@ struct ContentView: View {
                                         ? Color.orange.opacity(0.08).allowsHitTesting(false)
                                         : Color.clear.allowsHitTesting(false)
                                 )
+                                // Active Focus Mask
+                                .mask(
+                                    LinearGradient(
+                                        stops: [
+                                            .init(color: .clear, location: 0.0),
+                                            .init(color: .clear, location: 0.1),
+                                            .init(color: .black, location: 0.35),
+                                            .init(color: .black, location: 0.45),
+                                            .init(color: .black.opacity(0.2), location: 0.46),
+                                            .init(color: .black.opacity(0.1), location: 1.0)
+                                        ],
+                                        startPoint: .top,
+                                        endPoint: .bottom
+                                    )
+                                )
                         }
                     }
                     .onAppear { containerHeight = geo.size.height }
+                    
+                    // Reading Zone Indicators
+                    if !isEditing {
+                        HStack {
+                            RoundedRectangle(cornerRadius: 1.5)
+                                .fill(Color.primary.opacity(0.15))
+                                .frame(width: 4, height: 40)
+                            Spacer()
+                            RoundedRectangle(cornerRadius: 1.5)
+                                .fill(Color.primary.opacity(0.15))
+                                .frame(width: 4, height: 40)
+                        }
+                        .padding(.horizontal, 6)
+                        .position(x: geo.size.width / 2, y: geo.size.height * 0.4)
+                    }
                 }
                 .clipped()
                 
@@ -131,24 +180,15 @@ struct ContentView: View {
                 }
             }
             
-            // Progress bar
-            GeometryReader { geo in
-                ZStack(alignment: .leading) {
-                    Rectangle().fill(Color.primary.opacity(0.04)).frame(height: 2)
-                    Rectangle()
-                        .fill(Color.primary.opacity(0.2))
-                        .frame(width: geo.size.width * progress, height: 2)
-                        .animation(.linear(duration: 0.1), value: progress)
-                }
-            }
-            .frame(height: 2)
+            Divider().background(Color.primary.opacity(0.08))
             
             // Footer
             let wordCount = ScriptParser.wordCount(for: text)
             PrompterFooter(
                 wordCount: wordCount,
                 estimatedReadTime: ScriptParser.estimatedReadTime(wordCount: wordCount),
-                progress: progress
+                progress: progress,
+                isPlaying: isPlaying
             )
         }
         .opacity(windowOpacity)
@@ -198,7 +238,7 @@ struct ContentView: View {
         let segs = ScriptParser.textSegments(from: text)
         if segs.count <= 1 {
             Text(text)
-                .font(.system(size: fontSize, weight: .light, design: fontDesign))
+                .font(.system(size: fontSize, weight: .bold, design: fontDesign)) // Switched to bold matching mockup
                 .foregroundColor(highContrast ? .white : .primary.opacity(0.85))
                 .lineSpacing(lineSpace)
                 .multilineTextAlignment(alignment)
