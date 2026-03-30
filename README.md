@@ -1,84 +1,82 @@
 # Echoly
 
-A lightweight, purely native, always-on-top floating teleprompter for macOS, built with Swift and SwiftUI.
+A professional-grade, native macOS teleprompter designed for creators, built with Swift and SwiftUI.
 
-Designed for creators, presenters, and professionals who need their script visible while recording videos, taking calls, or presenting live.
+Echoly is a lightweight, always-on-top floating teleprompter that helps you deliver flawless presentations, record videos, or host live calls with confidence. It features a modernized, web-inspired interface with high-performance rendering and professional cue management.
 
-## Features
+## Key Features
 
-### Core
-- **Always On Top** — Native floating window that stays above all apps
-- **Glassmorphism UI** — Translucent blur background using macOS Visual Effects
-- **Menu Bar Icon** — Show/hide Echoly from the menu bar without switching apps
-- **Window Memory** — Remembers position and size between launches
+### 🎨 Modernized UI & Experience
+- **Active Focus Mask** — A dynamic linear gradient that fades non-active text, keeping your eyes focused on the current script segment.
+- **Reading Zone Indicators** — Built-in side markers to help you maintain consistent eye-tracking during long scripts.
+- **Glassmorphism Design** — A native macOS translucent blur background that adapts to your theme and environment.
+- **Always-On-Top** — Stays pinned above all other applications, including Zoom, Meet, and OBS.
+- **Stealth Mode** — Automatically hides the prompter window from all screen capture and screen sharing software.
 
-### Scrolling
-- **Auto Scroll** — Continuous smooth scrolling with adjustable speed
-- **Manual Scroll** — Step through your script using Enter/Return key
-- **Speed Presets** — Create, edit, and apply custom precise scroll speeds
-- **Countdown Timer** — 3-2-1 countdown before auto-scroll begins
-- **Progress Bar** — Visual position indicator at the bottom
-- **Reset Button** — Instantly rewind to top
+### 📜 Intelligent Scrolling
+- **Smooth Auto-Scroll** — Fluid, jitter-free scrolling with granular speed control.
+- **Manual Advance** — Step through your script line-by-line using the `Enter/Return` key.
+- **Speed Presets** — Save and quickly apply your favorite scrolling speeds for different script types.
+- **Countdown Timer** — Customizable 3-2-1 visual countdown before scrolling begins.
 
-### Professional
-- **Cue Markers** — `[PAUSE]`, `[SLOW]`, `[CUE]` trigger events and render as highlighted inline tags
-- **Auto-Pause** — Scrolling stops automatically at `[PAUSE]` markers
-- **Speed Modulation** — `[SLOW]` drops scrolling speed by half until restored by `[CUE]`
-- **Cue Flash** — `[CUE]` briefly flashes an orange overlay alert when reached
-- **Mirror Mode** — Flip text horizontally for physical teleprompter rigs
-- **Stealth Mode** — Hide from Zoom, Meet, OBS, and all screen capture
+### 🎭 Professional Cue System
+- **Inline Cue Tags** — Automatically detects and highlights `[PAUSE]`, `[SLOW]`, and `[CUE]` tags.
+- **Dynamic Events** — Cues trigger real-time events:
+    - `[PAUSE]` — Instantly stops the auto-scroll.
+    - `[SLOW]` — Temporarily reduces scroll speed by 50%.
+    - `[CUE]` — Restores speed and triggers a brief visual flash alert.
 
-### Editor & Files
-- **Inline Editing** — Edit scripts directly inside the prompter
-- **Drag & Drop** — Drop `.txt` or `.docx` files onto the window
-- **DOCX Support** — Native Microsoft Word document parsing
-- **Recent Files** — Quick access to last 5 opened scripts
-- **Export to PDF** — Save your script as a formatted PDF
-- **Word Count & Read Time** — Live stats in the footer
+### ⚙️ Full Customization
+- **Typography** — Choose between Monospaced, Serif, and Sans-Serif fonts with adjustable size and line spacing.
+- **Appearance** — Native Light, Dark, and High-Contrast modes.
+- **Window Control** — Adjust window opacity (30% to 100%) and flip text horizontally for mirror-rig setups.
 
-### Customization
-- **Themes** — System Default, Light, or Dark
-- **Font Family** — Monospaced, Serif, or Sans-serif
-- **Text Alignment** — Left, Center, or Right
-- **Font Size** — Adjustable on the fly
-- **Line Spacing** — Fine-tune text density
-- **Window Opacity** — Control transparency (30–100%)
-- **High Contrast** — For bright studio environments
+### 📂 File Management
+- **Universal Drop** — Drag and drop `.txt` or `.docx` files directly onto the window.
+- **Recent Scripts** — Quick access to your last 5 opened scripts from the menu bar or settings.
+- **PDF Export** — Export your finalized script into a professionally formatted PDF.
+
+---
 
 ## Keyboard Shortcuts
 
 | Shortcut       | Action                         |
 |----------------|--------------------------------|
 | `Spacebar`     | Play / Pause auto-scroll       |
-| `Enter/Return` | Manual scroll (manual mode)    |
+| `Enter/Return` | Manual scroll (Manual mode)    |
 | `↑`            | Increase speed                 |
 | `↓`            | Decrease speed                 |
-| `⌘Z`          | Undo (edit mode)               |
-| `⌘⇧Z`        | Redo (edit mode)               |
+| `⌘Z` / `⌘⇧Z`   | Undo / Redo (Editor mode)      |
 
-## Requirements
+---
 
-- macOS 11.0+
-- Xcode Command Line Tools
+## Build & Installation
 
-## Build & Run
+To build Echoly from source, ensure you have **Xcode Command Line Tools** installed.
 
 ```bash
-cd /path/to/Echoly
+git clone https://github.com/yourusername/Echoly.git
+cd Echoly
 bash build_app.sh
 open Echoly.app
 ```
 
+---
+
 ## Project Structure
 
-```
+```text
 Echoly/
-├── EcholyApp.swift        # App lifecycle, window config, menu bar
-├── ContentView.swift      # Prompter UI, scrolling, cue system
-├── SettingsView.swift     # Settings panel & window manager
-├── VisualEffectView.swift # Native blur background
-├── AppTheme.swift         # Theme enum
-├── build_app.sh           # Compile & package script
-├── echoly_icon.png        # Source image compiled into AppIcon.icns
+├── EcholyApp.swift         # App lifecycle, window configuration, and global hotkeys
+├── ContentView.swift       # Primary prompter engine, scroll logic, and focus mask
+├── ScriptParser.swift      # Advanced regex parser for cue tags and text segments
+├── DocumentHandler.swift   # File I/O for .txt and .docx (Microsoft Word) support
+├── PDFExporter.swift       # Native Quartz rendering for script-to-PDF export
+├── SettingsView.swift      # Modern settings panel and speed preset manager
+├── VisualEffectView.swift  # SwiftUI wrapper for NSVisualEffectView (blur)
+├── AppTheme.swift          # Centralized theme definitions and color schemes
+├── PrompterToolbar.swift   # Refined top toolbar with playback and font controls
+├── PrompterFooter.swift    # Recording-style footer with word count and stats
+├── build_app.sh            # Automated build and packaging script
 └── README.md
 ```
