@@ -43,7 +43,7 @@ struct ScriptParser {
                 result += part
             } else {
                 var part = AttributedString(seg.text)
-                part.font = .system(size: fontSize, weight: .light, design: fontDesign)
+                part.font = .system(size: fontSize, weight: .bold, design: fontDesign)
                 part.foregroundColor = highContrast ? .white : Color.primary.opacity(0.85)
                 result += part
             }

@@ -46,10 +46,10 @@ struct PrompterFooter: View {
                     .font(.system(size: 9, weight: .medium, design: .monospaced))
                     .foregroundColor(.secondary)
                 
-                Text(String(format: "SLIDE %.0f/%.0f", min(progress * 100, 100), 100))
+                Text(String(format: "PROGRESS %.0f%%", min(progress * 100, 100)))
                     .font(.system(size: 9, weight: .medium, design: .monospaced))
                     .foregroundColor(.secondary)
-                    .frame(width: 75, alignment: .trailing)
+                    .frame(width: 85, alignment: .trailing)
             }
         }
         .padding(.horizontal, 20)

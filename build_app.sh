@@ -66,4 +66,4 @@ cat > "${APP_DIR}/Contents/Info.plist" <<EOF
 </plist>
 EOF
 
-echo "✅ Successfully built ${APP_DIR}!"
+echo "✅ Built ${APP_DIR} successfully!"

@@ -14,7 +14,7 @@ struct ContentView: View {
     @AppStorage("textAlignment") private var textAlignment: Int = 0 // 0=left, 1=center, 2=right
     @AppStorage("highContrast") private var highContrast: Bool = false
     
-    @State private var text: String = "Welcome to Echoly - Web Teleprompter\n\nThis is a sample speech to demonstrate the app.\n\nPress the Play button to begin.\n\nThen press Return or Enter to advance through your script.\n\nYou can adjust the font size using the controls in the toolbar."
+    @State private var text: String = "Welcome to Echoly\n\nStart your speech here. Adjust the scroll speed and font size using the toolbar above.\n\nYou can use [PAUSE], [SLOW], or [CUE] markers in your text for automatic control."
     @State private var fontSize: CGFloat = 48
     @State private var speed: CGFloat = 1.0
     @State private var baseSpeed: CGFloat = 1.0 // stored to restore after [SLOW]
@@ -315,12 +315,18 @@ struct ContentView: View {
     }
     
     func checkForCuePause() {
-        let approxCharPerPixel = Double(text.count) / max(textHeight, 1)
-        let currentCharIndex = Int(scrollPosition * approxCharPerPixel)
+        guard !text.isEmpty else { return }
         
-        let searchRange = max(0, currentCharIndex - 3)...min(text.count, currentCharIndex + 10)
-        let startIdx = text.index(text.startIndex, offsetBy: max(0, searchRange.lowerBound), limitedBy: text.endIndex) ?? text.startIndex
-        let endIdx = text.index(text.startIndex, offsetBy: min(text.count, searchRange.upperBound), limitedBy: text.endIndex) ?? text.endIndex
+        let ratio = scrollPosition / max(textHeight, 1)
+        let currentCharIndex = Int(CGFloat(text.count) * ratio)
+        
+        // Search in a small window around current scroll position
+        let lookAhead = 15
+        let start = max(0, currentCharIndex - 5)
+        let end = min(text.count, currentCharIndex + lookAhead)
+        
+        let startIdx = text.index(text.startIndex, offsetBy: start, limitedBy: text.endIndex) ?? text.startIndex
+        let endIdx = text.index(text.startIndex, offsetBy: end, limitedBy: text.endIndex) ?? text.endIndex
         let window = String(text[startIdx..<endIdx])
         
         if window.localizedCaseInsensitiveContains("[PAUSE]") {
@@ -330,10 +336,12 @@ struct ContentView: View {
                 speed = max(0.3, baseSpeed * 0.5)
             }
         } else if window.localizedCaseInsensitiveContains("[CUE]") {
-            speed = baseSpeed
-            withAnimation(.easeInOut(duration: 0.15)) { cueFlash = true }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                withAnimation(.easeOut(duration: 0.4)) { cueFlash = false }
+            if !cueFlash {
+                speed = baseSpeed
+                withAnimation(.easeInOut(duration: 0.15)) { cueFlash = true }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                    withAnimation(.easeOut(duration: 0.4)) { cueFlash = false }
+                }
             }
         }
     }
