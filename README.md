@@ -69,14 +69,13 @@ open Echoly.app
 Echoly/
 ├── EcholyApp.swift         # App lifecycle, window configuration, and global hotkeys
 ├── ContentView.swift       # Primary prompter engine, scroll logic, and focus mask
-├── ScriptParser.swift      # Advanced regex parser for cue tags and text segments
+├── ScriptParser.swift      # Regex parser for cue tags and attributed text segments
 ├── DocumentHandler.swift   # File I/O for .txt and .docx (Microsoft Word) support
 ├── PDFExporter.swift       # Native Quartz rendering for script-to-PDF export
-├── SettingsView.swift      # Modern settings panel and speed preset manager
-├── VisualEffectView.swift  # SwiftUI wrapper for NSVisualEffectView (blur)
-├── AppTheme.swift          # Centralized theme definitions and color schemes
-├── PrompterToolbar.swift   # Refined top toolbar with playback and font controls
-├── PrompterFooter.swift    # Recording-style footer with word count and stats
+├── SettingsView.swift      # Settings panel, speed preset manager, and window manager
+├── AppTheme.swift          # Centralized theme enum and color scheme definitions
+├── PrompterToolbar.swift   # Top toolbar with playback controls and font size picker
+├── PrompterFooter.swift    # Recording-style footer with word count and progress bar
 ├── build_app.sh            # Automated build and packaging script
 └── README.md
 ```

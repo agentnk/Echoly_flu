@@ -2,6 +2,13 @@
 
 All notable changes to the **Echoly** project will be documented in this file.
 
+## [2.1.0] - 2026-04-04
+### Changed
+- **Code Refactor**: Removed stale and redundant inline comments across all source files for improved readability.
+- **Magic Number Extraction**: Replaced hard-coded literals in `ScriptParser` (speaking pace) and `PDFExporter` (page dimensions) with named constants.
+- **Code Style**: Split compound single-line statements in `ContentView` into clearly separated statements.
+- **Project Structure**: Removed the obsolete `VisualEffectView.swift` reference from documentation.
+
 ## [2.0.0] - 2026-03-30
 ### Added
 - **UI Modernization**: Complete redesign inspired by professional web-based teleprompter tools.
@@ -38,6 +45,7 @@ All notable changes to the **Echoly** project will be documented in this file.
 
 ---
 
+[2.1.0]: https://github.com/yourusername/Echoly/releases/tag/v2.1.0
 [2.0.0]: https://github.com/yourusername/Echoly/releases/tag/v2.0.0
 [1.2.0]: https://github.com/yourusername/Echoly/releases/tag/v1.2.0
 [1.1.0]: https://github.com/yourusername/Echoly/releases/tag/v1.1.0
