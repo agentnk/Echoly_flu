@@ -22,7 +22,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             window.level = .floating 
             window.title = "Echoly"
             
-            // Restore saved window frame
             let hide = UserDefaults.standard.bool(forKey: "hideFromScreenSharing")
             window.sharingType = hide ? .none : .readOnly
             
@@ -31,7 +30,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 if frame.width > 0 { window.setFrame(frame, display: true) }
             }
             
-            // Save window position on move/resize
             NotificationCenter.default.addObserver(forName: NSWindow.didMoveNotification, object: window, queue: .main) { _ in
                 UserDefaults.standard.set(NSStringFromRect(window.frame), forKey: "windowFrame")
             }
@@ -40,7 +38,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
         
-        // Menu bar icon
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         if let button = statusItem?.button {
             button.image = NSImage(systemSymbolName: "text.alignleft", accessibilityDescription: "Echoly")
@@ -48,7 +45,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             button.target = self
         }
 
-        // Keyboard shortcuts
         NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
             if event.keyCode == 36 { // Enter/Return
                 NotificationCenter.default.post(name: NSNotification.Name("ManualScroll"), object: nil)

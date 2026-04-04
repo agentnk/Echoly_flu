@@ -7,8 +7,11 @@ struct PDFExporter {
         panel.allowedContentTypes = [.pdf]
         panel.nameFieldStringValue = "script.pdf"
         if panel.runModal() == .OK, let url = panel.url {
-            let pageRect = CGRect(x: 0, y: 0, width: 612, height: 792) // US Letter
-            let textRect = pageRect.insetBy(dx: 50, dy: 50)
+            let pageWidth: CGFloat = 612
+            let pageHeight: CGFloat = 792
+            let pageMargin: CGFloat = 50
+            let pageRect = CGRect(x: 0, y: 0, width: pageWidth, height: pageHeight)
+            let textRect = pageRect.insetBy(dx: pageMargin, dy: pageMargin)
             
             let pdfData = NSMutableData()
             

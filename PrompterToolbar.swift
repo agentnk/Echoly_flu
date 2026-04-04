@@ -16,9 +16,7 @@ struct PrompterToolbar: View {
     
     var body: some View {
         HStack(spacing: 16) {
-            // Left: Logo and Open Button
             HStack(spacing: 16) {
-                // Mock Logo
                 HStack(spacing: 6) {
                     Image(systemName: "person.wave.2.fill")
                         .font(.system(size: 14))
@@ -46,7 +44,6 @@ struct PrompterToolbar: View {
             
             Spacer()
             
-            // Center Playback Controls
             HStack(spacing: 18) {
                 Button(action: resetScrollAction) {
                     Image(systemName: "backward.end.alt.fill")
@@ -79,9 +76,7 @@ struct PrompterToolbar: View {
             
             Spacer()
             
-            // Right Controls
             HStack(spacing: 16) {
-                // Zoom
                 HStack(spacing: 8) {
                     Button(action: { if fontSize > 12 { fontSize -= 2 } }) {
                         Text("A-")
@@ -107,7 +102,6 @@ struct PrompterToolbar: View {
                 
                 Divider().frame(height: 16)
                 
-                // Theme Toggle
                 Button(action: {
                     themePreference = themePreference == 2 ? 1 : 2 // Toggle Dark/Light
                 }) {
@@ -117,7 +111,6 @@ struct PrompterToolbar: View {
                 .buttonStyle(.plain)
                 .foregroundColor(.primary)
                 
-                // Settings
                 Button(action: { SettingsWindowManager.show() }) {
                     Image(systemName: "gearshape.fill")
                         .font(.system(size: 14))

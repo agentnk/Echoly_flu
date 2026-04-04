@@ -17,7 +17,7 @@ struct ContentView: View {
     @State private var text: String = "Welcome to Echoly\n\nStart your speech here. Adjust the scroll speed and font size using the toolbar above.\n\nYou can use [PAUSE], [SLOW], or [CUE] markers in your text for automatic control."
     @State private var fontSize: CGFloat = 48
     @State private var speed: CGFloat = 1.0
-    @State private var baseSpeed: CGFloat = 1.0 // stored to restore after [SLOW]
+    @State private var baseSpeed: CGFloat = 1.0
     @State private var isPlaying = false
     @State private var scrollPosition: CGFloat = 0
     @State private var timer: Timer?
@@ -240,7 +240,7 @@ struct ContentView: View {
         let segs = ScriptParser.textSegments(from: text)
         if segs.count <= 1 {
             Text(text)
-                .font(.system(size: fontSize, weight: .bold, design: fontDesign)) // Switched to bold matching mockup
+                .font(.system(size: fontSize, weight: .bold, design: fontDesign))
                 .foregroundColor(highContrast ? .white : .primary.opacity(0.85))
                 .lineSpacing(lineSpace)
                 .multilineTextAlignment(alignment)
@@ -287,7 +287,10 @@ struct ContentView: View {
     func loadFile(from url: URL) {
         if let newText = DocumentHandler.loadText(from: url) {
             self.text = newText
-            scrollPosition = 0; isPlaying = false; timer?.invalidate(); timer = nil
+            scrollPosition = 0
+            isPlaying = false
+            timer?.invalidate()
+            timer = nil
             recentFilesData = DocumentHandler.addRecentFile(url.path, to: recentFilesData)
         }
     }

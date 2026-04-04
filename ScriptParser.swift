@@ -1,12 +1,14 @@
 import SwiftUI
 
 struct ScriptParser {
+    private static let avgWordsPerMinute: Double = 150
+
     static func wordCount(for text: String) -> Int {
         text.split(whereSeparator: { $0.isWhitespace || $0.isNewline }).count
     }
     
     static func estimatedReadTime(wordCount: Int) -> String {
-        let minutes = Double(wordCount) / 150.0 // avg speaking pace
+        let minutes = Double(wordCount) / avgWordsPerMinute
         if minutes < 1 { return "<1 min" }
         return "\(Int(minutes)) min"
     }

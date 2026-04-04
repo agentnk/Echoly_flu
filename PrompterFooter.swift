@@ -8,7 +8,6 @@ struct PrompterFooter: View {
     
     var body: some View {
         HStack(spacing: 16) {
-            // Status Indicator
             HStack(spacing: 6) {
                 Circle()
                     .fill(isPlaying ? Color.red : Color.orange)
@@ -19,7 +18,6 @@ struct PrompterFooter: View {
                     .tracking(1.0)
             }
             
-            // Custom Progress Bar
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
                     Capsule()
@@ -30,7 +28,6 @@ struct PrompterFooter: View {
                         .fill(Color.primary.opacity(0.2))
                         .frame(width: max(0, geo.size.width * progress), height: 4)
                     
-                    // The thumb
                     RoundedRectangle(cornerRadius: 2)
                         .fill(Color.primary)
                         .frame(width: 5, height: 12)
@@ -40,7 +37,6 @@ struct PrompterFooter: View {
             }
             .frame(height: 12)
             
-            // Right Metrics
             HStack(spacing: 16) {
                 Text("0:00 / \(estimatedReadTime)")
                     .font(.system(size: 9, weight: .medium, design: .monospaced))

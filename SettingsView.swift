@@ -49,7 +49,6 @@ struct SettingsView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 
-                // Display
                 settingsSection("Display") {
                     Picker("", selection: $draft.theme) {
                         Text("System").tag(0)
@@ -66,7 +65,6 @@ struct SettingsView: View {
                     Toggle("High contrast", isOn: $draft.highContrast).font(.system(size: 12))
                 }
                 
-                // Typography
                 settingsSection("Typography") {
                     Picker("Font", selection: $draft.fontFamily) {
                         Text("Monospaced").tag(0)
@@ -86,7 +84,6 @@ struct SettingsView: View {
                     Slider(value: $draft.lineSpace, in: 0...40, step: 2)
                 }
                 
-                // Controls
                 settingsSection("Controls") {
                     Picker("", selection: $draft.scrollMode) {
                         Text("Auto scroll").tag(0)
@@ -102,7 +99,6 @@ struct SettingsView: View {
                     .labelsHidden()
                 }
                 
-                // Speed Presets
                 settingsSection("Speed Presets") {
                     ForEach(draft.editablePresets.indices, id: \.self) { i in
                         HStack(spacing: 6) {
@@ -130,7 +126,6 @@ struct SettingsView: View {
                             .buttonStyle(.plain)
                         }
                     }
-                    // Add new preset row
                     HStack(spacing: 6) {
                         TextField("Name", text: $newPresetName)
                             .textFieldStyle(.roundedBorder)
@@ -150,13 +145,11 @@ struct SettingsView: View {
                     }
                 }
                 
-                // Privacy
                 settingsSection("Privacy") {
                     Toggle("Hide from screen sharing", isOn: $draft.hideSharing)
                         .font(.system(size: 12))
                 }
                 
-                // Export
                 settingsSection("Export") {
                     Button(action: {
                         NotificationCenter.default.post(name: NSNotification.Name("ExportPDF"), object: nil)
@@ -170,7 +163,6 @@ struct SettingsView: View {
                     .buttonStyle(.plain)
                 }
                 
-                // Recent Files
                 if !recentFiles.isEmpty {
                     settingsSection("Recent") {
                         ForEach(recentFiles, id: \.self) { path in
@@ -190,7 +182,6 @@ struct SettingsView: View {
                     }
                 }
                 
-                // Actions
                 HStack {
                     Spacer()
                     Button("Cancel") { SettingsWindowManager.sharedWindow?.close() }
@@ -206,7 +197,6 @@ struct SettingsView: View {
                         fontFamily = draft.fontFamily
                         textAlignment = draft.alignment
                         highContrast = draft.highContrast
-                        // Persist edited speed presets
                         speedPresetsData = draft.editablePresets
                             .map { "\($0.name):\(String(format: "%.1f", $0.speed))" }
                             .joined(separator: "|||")
@@ -234,8 +224,6 @@ struct SettingsView: View {
             )
         }
     }
-    
-    // MARK: - Helpers
     
     func addPreset() {
         guard !newPresetName.isEmpty, let spd = Double(newPresetSpeed) else { return }
