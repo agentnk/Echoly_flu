@@ -101,7 +101,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         let hostingView = NSHostingView(rootView: AboutView())
         let window = NSPanel(
-            contentRect: NSRect(x: 0, y: 0, width: 340, height: 460),
+            contentRect: NSRect(x: 0, y: 0, width: 280, height: 280),
             styleMask: [.titled, .closable, .fullSizeContentView],
             backing: .buffered,
             defer: false
