@@ -16,6 +16,7 @@ struct EcholyApp: App {
 
 class AppDelegate: NSObject, NSApplicationDelegate {
     var statusItem: NSStatusItem?
+    var aboutWindow: NSWindow?
     
     func applicationDidFinishLaunching(_ notification: Notification) {
         if let window = NSApplication.shared.windows.first {
@@ -41,9 +42,26 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         if let button = statusItem?.button {
             button.image = NSImage(systemSymbolName: "text.alignleft", accessibilityDescription: "Echoly")
-            button.action = #selector(toggleWindow)
-            button.target = self
         }
+
+        let menu = NSMenu()
+
+        let aboutItem = NSMenuItem(title: "About Echoly", action: #selector(openAboutWindow), keyEquivalent: "")
+        aboutItem.target = self
+        menu.addItem(aboutItem)
+
+        menu.addItem(.separator())
+
+        let toggleItem = NSMenuItem(title: "Show / Hide Echoly", action: #selector(toggleWindow), keyEquivalent: "")
+        toggleItem.target = self
+        menu.addItem(toggleItem)
+
+        menu.addItem(.separator())
+
+        let quitItem = NSMenuItem(title: "Quit Echoly", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        menu.addItem(quitItem)
+
+        statusItem?.menu = menu
 
         NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
             if event.keyCode == 36 { // Enter/Return
@@ -72,5 +90,29 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 NSApplication.shared.activate(ignoringOtherApps: true)
             }
         }
+    }
+
+    @objc func openAboutWindow() {
+        if let existing = aboutWindow, existing.isVisible {
+            existing.makeKeyAndOrderFront(nil)
+            NSApplication.shared.activate(ignoringOtherApps: true)
+            return
+        }
+
+        let hostingView = NSHostingView(rootView: AboutView())
+        let window = NSPanel(
+            contentRect: NSRect(x: 0, y: 0, width: 340, height: 460),
+            styleMask: [.titled, .closable, .fullSizeContentView],
+            backing: .buffered,
+            defer: false
+        )
+        window.title = "About Echoly"
+        window.titlebarAppearsTransparent = true
+        window.isMovableByWindowBackground = true
+        window.contentView = hostingView
+        window.center()
+        window.makeKeyAndOrderFront(nil)
+        NSApplication.shared.activate(ignoringOtherApps: true)
+        aboutWindow = window
     }
 }
