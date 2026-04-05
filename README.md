@@ -68,7 +68,8 @@ open Echoly.app
 ```text
 Echoly/
 ├── EcholyApp.swift         # App lifecycle, window configuration, and global hotkeys
-├── ContentView.swift       # Primary prompter engine, scroll logic, and focus mask
+├── ContentView.swift       # Primary prompter view, UI layout, and focus mask
+├── PrompterViewModel.swift # Encapsulated MVVM logic handling timers, states, and scroll behaviors
 ├── ScriptParser.swift      # Regex parser for cue tags and attributed text segments
 ├── DocumentHandler.swift   # File I/O for .txt and .docx (Microsoft Word) support
 ├── PDFExporter.swift       # Native Quartz rendering for script-to-PDF export

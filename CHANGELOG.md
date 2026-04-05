@@ -2,6 +2,12 @@
 
 All notable changes to the **Echoly** project will be documented in this file.
 
+## [2.2.0] - 2026-04-06
+### Added
+- **About Window**: A clean, minimalist About window that displays application meta-data, stays on top seamlessly, and auto-closes after 35 seconds.
+### Changed
+- **Architectural Refactor**: Implemented the MVVM (Model-View-ViewModel) design pattern. Lifted monolithic state variables and scrolling logics from `ContentView` into a dedicated modular `PrompterViewModel`.
+
 ## [2.1.0] - 2026-04-04
 ### Changed
 - **Code Refactor**: Removed stale and redundant inline comments across all source files for improved readability.

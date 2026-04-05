@@ -2,46 +2,30 @@ import SwiftUI
 import AppKit
 
 struct ContentView: View {
+    @StateObject private var viewModel = PrompterViewModel()
+    
     @AppStorage("themePreference") private var themePreference: Int = 0
     @AppStorage("lineSpace") private var lineSpace: Double = 8.0
     @AppStorage("scrollMode") private var scrollMode: Int = 0 
     @AppStorage("linesPerScroll") private var linesPerScroll: Int = 1
-    @AppStorage("hideFromScreenSharing") private var hideFromScreenSharing: Bool = false
     @AppStorage("windowOpacity") private var windowOpacity: Double = 1.0
     @AppStorage("mirrorMode") private var mirrorMode: Bool = false
     @AppStorage("recentFiles") private var recentFilesData: String = ""
-    @AppStorage("fontFamily") private var fontFamily: Int = 0 // 0=mono, 1=serif, 2=sans
-    @AppStorage("textAlignment") private var textAlignment: Int = 0 // 0=left, 1=center, 2=right
+    @AppStorage("fontFamily") private var fontFamily: Int = 0 
+    @AppStorage("textAlignment") private var textAlignment: Int = 0 
     @AppStorage("highContrast") private var highContrast: Bool = false
+    @AppStorage("hideFromScreenSharing") private var hideFromScreenSharing: Bool = false
     
-    @State private var text: String = "Welcome to Echoly\n\nStart your speech here. Adjust the scroll speed and font size using the toolbar above.\n\nYou can use [PAUSE], [SLOW], or [CUE] markers in your text for automatic control."
     @State private var fontSize: CGFloat = 48
-    @State private var speed: CGFloat = 1.0
-    @State private var baseSpeed: CGFloat = 1.0
-    @State private var isPlaying = false
-    @State private var scrollPosition: CGFloat = 0
-    @State private var timer: Timer?
     @State private var isEditing = false
-    @State private var showCountdown = false
-    @State private var countdownValue = 3
-    @State private var countdownTimer: Timer?
-    @State private var textHeight: CGFloat = 0
-    @State private var containerHeight: CGFloat = 0
     @State private var isTargeted = false
-    @State private var cueFlash: Bool = false // for [CUE] highlight pulse
     
     var theme: AppTheme { AppTheme(rawValue: themePreference) ?? .system }
-    
-    var progress: Double {
-        guard textHeight > 0 else { return 0 }
-        let maxScroll = max(textHeight - containerHeight * 0.55, 1)
-        return min(scrollPosition / maxScroll, 1.0)
-    }
     
     var fontDesign: Font.Design {
         switch fontFamily {
         case 1: return .serif
-        case 2: return .default // sans-serif
+        case 2: return .default
         default: return .monospaced
         }
     }
@@ -75,14 +59,16 @@ struct ContentView: View {
             
             // Toolbar
             PrompterToolbar(
-                isPlaying: isPlaying,
-                speed: speed,
+                isPlaying: viewModel.isPlaying,
+                speed: viewModel.speed,
                 fontSize: $fontSize,
                 isEditing: $isEditing,
                 openFileAction: openFile,
-                resetScrollAction: resetScroll,
-                startWithCountdownAction: startWithCountdown,
-                manualScrollAction: manualScroll
+                resetScrollAction: viewModel.resetScroll,
+                startWithCountdownAction: viewModel.startWithCountdown,
+                manualScrollAction: {
+                    viewModel.manualScroll(fontSize: fontSize, lineSpace: lineSpace, linesPerScroll: linesPerScroll)
+                }
             )
             .padding(.horizontal, 20)
             .padding(.vertical, 8)
@@ -107,7 +93,7 @@ struct ContentView: View {
                 GeometryReader { geo in
                     Group {
                         if isEditing {
-                            TextEditor(text: $text)
+                            TextEditor(text: $viewModel.text)
                                 .font(.system(size: fontSize, weight: .bold, design: fontDesign))
                                 .lineSpacing(lineSpace)
                                 .padding(.horizontal, 40)
@@ -119,14 +105,14 @@ struct ContentView: View {
                                 .frame(maxWidth: .infinity, alignment: frameAlignment)
                                 .background(GeometryReader { textGeo in
                                     Color.clear
-                                        .onAppear { textHeight = textGeo.size.height }
-                                        .onChange(of: text) { textHeight = textGeo.size.height }
-                                        .onChange(of: textGeo.size) { textHeight = textGeo.size.height }
+                                        .onAppear { viewModel.textHeight = textGeo.size.height }
+                                        .onChange(of: viewModel.text) { viewModel.textHeight = textGeo.size.height }
+                                        .onChange(of: textGeo.size) { viewModel.textHeight = textGeo.size.height }
                                 })
-                                .offset(y: max(0, geo.size.height * 0.4) - scrollPosition)
+                                .offset(y: max(0, geo.size.height * 0.4) - viewModel.scrollPosition)
                                 .scaleEffect(x: mirrorMode ? -1 : 1, y: 1)
                                 .overlay(
-                                    cueFlash
+                                    viewModel.cueFlash
                                         ? Color.orange.opacity(0.08).allowsHitTesting(false)
                                         : Color.clear.allowsHitTesting(false)
                                 )
@@ -147,7 +133,7 @@ struct ContentView: View {
                                 )
                         }
                     }
-                    .onAppear { containerHeight = geo.size.height }
+                    .onAppear { viewModel.containerHeight = geo.size.height }
                     
                     // Reading Zone Indicators
                     if !isEditing {
@@ -166,9 +152,9 @@ struct ContentView: View {
                 }
                 .clipped()
                 
-                if showCountdown {
+                if viewModel.showCountdown {
                     Color.black.opacity(0.5).edgesIgnoringSafeArea(.all)
-                    Text("\(countdownValue)")
+                    Text("\(viewModel.countdownValue)")
                         .font(.system(size: 80, weight: .ultraLight, design: .rounded))
                         .foregroundColor(.white.opacity(0.9))
                 }
@@ -184,12 +170,12 @@ struct ContentView: View {
             Divider().background(Color.primary.opacity(0.08))
             
             // Footer
-            let wordCount = ScriptParser.wordCount(for: text)
+            let wordCount = ScriptParser.wordCount(for: viewModel.text)
             PrompterFooter(
                 wordCount: wordCount,
                 estimatedReadTime: ScriptParser.estimatedReadTime(wordCount: wordCount),
-                progress: progress,
-                isPlaying: isPlaying
+                progress: viewModel.progress,
+                isPlaying: viewModel.isPlaying
             )
             .padding(.bottom, 12)
         }
@@ -205,31 +191,33 @@ struct ContentView: View {
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ManualScroll"))) { _ in
-            if scrollMode == 1 && !isEditing { manualScroll() }
+            if scrollMode == 1 && !isEditing {
+               viewModel.manualScroll(fontSize: fontSize, lineSpace: lineSpace, linesPerScroll: linesPerScroll)
+            }
         }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("TogglePlay"))) { _ in
-            if scrollMode == 0 && !isEditing { startWithCountdown() }
+            if scrollMode == 0 && !isEditing { viewModel.startWithCountdown() }
         }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("SpeedUp"))) { _ in
-            if scrollMode == 0 { speed = min(5.0, speed + 0.5) }
+            if scrollMode == 0 { viewModel.speed = min(5.0, viewModel.speed + 0.5) }
         }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("SpeedDown"))) { _ in
-            if scrollMode == 0 { speed = max(0.5, speed - 0.5) }
+            if scrollMode == 0 { viewModel.speed = max(0.5, viewModel.speed - 0.5) }
         }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("OpenRecentFile"))) { notif in
             if let path = notif.object as? String { loadFile(from: URL(fileURLWithPath: path)) }
         }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ApplySpeedPreset"))) { notif in
             if let spd = notif.object as? Double {
-                speed = CGFloat(spd)
-                baseSpeed = CGFloat(spd)
+                viewModel.speed = CGFloat(spd)
+                viewModel.baseSpeed = CGFloat(spd)
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ExportPDF"))) { _ in
-            PDFExporter.exportPDF(text: text, fontSize: fontSize)
+            PDFExporter.exportPDF(text: viewModel.text, fontSize: fontSize)
         }
         .onChange(of: scrollMode) { _, newMode in
-            if newMode == 1 && isPlaying { togglePlay() }
+            if newMode == 1 && viewModel.isPlaying { viewModel.togglePlay() }
         }
     }
     
@@ -237,9 +225,9 @@ struct ContentView: View {
     
     @ViewBuilder
     func cueRenderedText() -> some View {
-        let segs = ScriptParser.textSegments(from: text)
+        let segs = ScriptParser.textSegments(from: viewModel.text)
         if segs.count <= 1 {
-            Text(text)
+            Text(viewModel.text)
                 .font(.system(size: fontSize, weight: .bold, design: fontDesign))
                 .foregroundColor(highContrast ? .white : .primary.opacity(0.85))
                 .lineSpacing(lineSpace)
@@ -252,31 +240,7 @@ struct ContentView: View {
         }
     }
     
-    // MARK: - Countdown
-    
-    func startWithCountdown() {
-        if isPlaying { togglePlay(); return }
-        showCountdown = true
-        countdownValue = 3
-        countdownTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { t in
-            countdownValue -= 1
-            if countdownValue <= 0 {
-                t.invalidate(); countdownTimer = nil; showCountdown = false; togglePlay()
-            }
-        }
-    }
-    
-    // MARK: - Actions
-    
-    func resetScroll() {
-        if isPlaying { togglePlay() }
-        withAnimation(.easeOut(duration: 0.3)) { scrollPosition = 0 }
-    }
-    
-    func manualScroll() {
-        let jump = (fontSize * 1.25 + CGFloat(lineSpace)) * CGFloat(linesPerScroll)
-        withAnimation(.easeInOut(duration: 0.25)) { scrollPosition += jump }
-    }
+    // MARK: - File Actions
     
     func handleDrop(providers: [NSItemProvider]) -> Bool {
         return DocumentHandler.handleDrop(providers: providers) { url in
@@ -286,11 +250,7 @@ struct ContentView: View {
     
     func loadFile(from url: URL) {
         if let newText = DocumentHandler.loadText(from: url) {
-            self.text = newText
-            scrollPosition = 0
-            isPlaying = false
-            timer?.invalidate()
-            timer = nil
+            viewModel.loadText(newText)
             recentFilesData = DocumentHandler.addRecentFile(url.path, to: recentFilesData)
         }
     }
@@ -298,54 +258,6 @@ struct ContentView: View {
     func openFile() {
         DocumentHandler.openFile { url in
             if let u = url { self.loadFile(from: u) }
-        }
-    }
-    
-    // MARK: - Auto-scroll with cue detection
-    
-    func togglePlay() {
-        isPlaying.toggle()
-        if isPlaying {
-            baseSpeed = speed // snapshot current speed as base
-            timer = Timer.scheduledTimer(withTimeInterval: 0.02, repeats: true) { _ in
-                scrollPosition += speed
-                checkForCuePause()
-            }
-        } else {
-            timer?.invalidate(); timer = nil
-            speed = baseSpeed // restore base speed on pause
-        }
-    }
-    
-    func checkForCuePause() {
-        guard !text.isEmpty else { return }
-        
-        let ratio = scrollPosition / max(textHeight, 1)
-        let currentCharIndex = Int(CGFloat(text.count) * ratio)
-        
-        // Search in a small window around current scroll position
-        let lookAhead = 15
-        let start = max(0, currentCharIndex - 5)
-        let end = min(text.count, currentCharIndex + lookAhead)
-        
-        let startIdx = text.index(text.startIndex, offsetBy: start, limitedBy: text.endIndex) ?? text.startIndex
-        let endIdx = text.index(text.startIndex, offsetBy: end, limitedBy: text.endIndex) ?? text.endIndex
-        let window = String(text[startIdx..<endIdx])
-        
-        if window.localizedCaseInsensitiveContains("[PAUSE]") {
-            togglePlay()
-        } else if window.localizedCaseInsensitiveContains("[SLOW]") {
-            if speed > baseSpeed * 0.6 {
-                speed = max(0.3, baseSpeed * 0.5)
-            }
-        } else if window.localizedCaseInsensitiveContains("[CUE]") {
-            if !cueFlash {
-                speed = baseSpeed
-                withAnimation(.easeInOut(duration: 0.15)) { cueFlash = true }
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
-                    withAnimation(.easeOut(duration: 0.4)) { cueFlash = false }
-                }
-            }
         }
     }
 }
