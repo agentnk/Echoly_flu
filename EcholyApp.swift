@@ -17,6 +17,7 @@ struct EcholyApp: App {
 class AppDelegate: NSObject, NSApplicationDelegate {
     var statusItem: NSStatusItem?
     var aboutWindow: NSWindow?
+    var aboutWindowTimer: Timer?
     
     func applicationDidFinishLaunching(_ notification: Notification) {
         if let window = NSApplication.shared.windows.first {
@@ -96,6 +97,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         if let existing = aboutWindow, existing.isVisible {
             existing.makeKeyAndOrderFront(nil)
             NSApplication.shared.activate(ignoringOtherApps: true)
+            resetAboutWindowTimer()
             return
         }
 
@@ -109,10 +111,20 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         window.title = "About Echoly"
         window.titlebarAppearsTransparent = true
         window.isMovableByWindowBackground = true
+        window.level = .floating
         window.contentView = hostingView
         window.center()
         window.makeKeyAndOrderFront(nil)
         NSApplication.shared.activate(ignoringOtherApps: true)
         aboutWindow = window
+        
+        resetAboutWindowTimer()
+    }
+
+    func resetAboutWindowTimer() {
+        aboutWindowTimer?.invalidate()
+        aboutWindowTimer = Timer.scheduledTimer(withTimeInterval: 35.0, repeats: false) { [weak self] _ in
+            self?.aboutWindow?.close()
+        }
     }
 }
