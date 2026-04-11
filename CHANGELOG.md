@@ -2,6 +2,16 @@
 
 All notable changes to the **Echoly** project will be documented in this file.
 
+## [2.4.0] - 2026-04-11
+### Added
+- **Deep Glassmorphism**: Integrated native macOS `NSVisualEffectView` for a professional, translucent material background that adapts to user wallpapers.
+- **Compact Mode**: Implemented a distraction-free playback experience where the toolbar and footer smoothly fade out and blur during active scrolling.
+### Changed
+- **Premium UI Overhaul**: Complete redesign of all interface components using a curated "Indigo" design system.
+- **Floating Pill Toolbar**: Redesigned the toolbar into a more modern, floating pill container with interactive scale-feedback buttons and refined icons.
+- **Polished Footer**: Replaced the basic progress bar with a sophisticated glass-inspired track and a pulsing "LIVE" status indicator.
+- **Refined Focus Mask**: Optimized the prompter's active focus area with a more natural gradient fall-off.
+
 ## [2.3.0] - 2026-04-11
 ### Changed
 - **Code Refactor & Decomposition**: Split the monolithic `ContentView.swift` into smaller, modular components. Introduced `PrompterDisplayView` to encapsulate the core scrolling logic, focus mask, and reading zone indicators.
