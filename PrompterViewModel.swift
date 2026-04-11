@@ -111,4 +111,30 @@ class PrompterViewModel: ObservableObject {
         self.timer?.invalidate()
         self.timer = nil
     }
+    
+    // MARK: - Formatting Helpers
+    
+    func fontDesign(for fontFamily: Int) -> Font.Design {
+        switch fontFamily {
+        case 1: return .serif
+        case 2: return .default
+        default: return .monospaced
+        }
+    }
+    
+    func alignment(for textAlignment: Int) -> TextAlignment {
+        switch textAlignment {
+        case 1: return .center
+        case 2: return .trailing
+        default: return .leading
+        }
+    }
+    
+    func frameAlignment(for textAlignment: Int) -> Alignment {
+        switch textAlignment {
+        case 1: return .center
+        case 2: return .trailing
+        default: return .leading
+        }
+    }
 }

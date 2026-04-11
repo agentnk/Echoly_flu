@@ -77,79 +77,21 @@ struct ContentView: View {
             Divider().background(Color.primary.opacity(0.08))
             
             // Filename header
-            HStack(spacing: 6) {
-                Image(systemName: "doc.text")
-                    .font(.system(size: 10))
-                Text(currentFileName)
-                    .font(.system(size: 10, weight: .medium, design: .monospaced))
-                Spacer()
-            }
-            .foregroundColor(.secondary.opacity(0.6))
-            .padding(.horizontal, 20)
-            .padding(.vertical, 8)
-
+            filenameHeader
+            
             // Main Prompter
             ZStack {
-                GeometryReader { geo in
-                    Group {
-                        if isEditing {
-                            TextEditor(text: $viewModel.text)
-                                .font(.system(size: fontSize, weight: .bold, design: fontDesign))
-                                .lineSpacing(lineSpace)
-                                .padding(.horizontal, 40)
-                                .scrollContentBackground(.hidden)
-                                .background(Color.clear)
-                        } else {
-                            cueRenderedText()
-                                .padding(.horizontal, 40)
-                                .frame(maxWidth: .infinity, alignment: frameAlignment)
-                                .background(GeometryReader { textGeo in
-                                    Color.clear
-                                        .onAppear { viewModel.textHeight = textGeo.size.height }
-                                        .onChange(of: viewModel.text) { viewModel.textHeight = textGeo.size.height }
-                                        .onChange(of: textGeo.size) { viewModel.textHeight = textGeo.size.height }
-                                })
-                                .offset(y: max(0, geo.size.height * 0.4) - viewModel.scrollPosition)
-                                .scaleEffect(x: mirrorMode ? -1 : 1, y: 1)
-                                .overlay(
-                                    viewModel.cueFlash
-                                        ? Color.orange.opacity(0.08).allowsHitTesting(false)
-                                        : Color.clear.allowsHitTesting(false)
-                                )
-                                // Active Focus Mask
-                                .mask(
-                                    LinearGradient(
-                                        stops: [
-                                            .init(color: .clear, location: 0.0),
-                                            .init(color: .clear, location: 0.1),
-                                            .init(color: .black, location: 0.35),
-                                            .init(color: .black, location: 0.45),
-                                            .init(color: .black.opacity(0.2), location: 0.46),
-                                            .init(color: .black.opacity(0.1), location: 1.0)
-                                        ],
-                                        startPoint: .top,
-                                        endPoint: .bottom
-                                    )
-                                )
-                        }
-                    }
-                    .onAppear { viewModel.containerHeight = geo.size.height }
-                    
-                    // Reading Zone Indicators
-                    if !isEditing {
-                        HStack {
-                            RoundedRectangle(cornerRadius: 1.5)
-                                .fill(Color.primary.opacity(0.15))
-                                .frame(width: 4, height: 40)
-                            Spacer()
-                            RoundedRectangle(cornerRadius: 1.5)
-                                .fill(Color.primary.opacity(0.15))
-                                .frame(width: 4, height: 40)
-                        }
-                        .padding(.horizontal, 6)
-                        .position(x: geo.size.width / 2, y: geo.size.height * 0.4)
-                    }
-                }
+                PrompterDisplayView(
+                    viewModel: viewModel,
+                    fontSize: fontSize,
+                    lineSpace: lineSpace,
+                    fontDesign: viewModel.fontDesign(for: fontFamily),
+                    alignment: viewModel.alignment(for: textAlignment),
+                    frameAlignment: viewModel.frameAlignment(for: textAlignment),
+                    highContrast: highContrast,
+                    mirrorMode: mirrorMode,
+                    isEditing: $isEditing
+                )
                 .clipped()
                 
                 if viewModel.showCountdown {
@@ -160,24 +102,14 @@ struct ContentView: View {
                 }
                 
                 if isTargeted {
-                    RoundedRectangle(cornerRadius: 8)
-                        .stroke(Color.primary.opacity(0.15), style: StrokeStyle(lineWidth: 1.5, dash: [6]))
-                        .background(Color.primary.opacity(0.03))
-                        .padding(6)
+                    dropZoneOverlay
                 }
             }
             
             Divider().background(Color.primary.opacity(0.08))
             
             // Footer
-            let wordCount = ScriptParser.wordCount(for: viewModel.text)
-            PrompterFooter(
-                wordCount: wordCount,
-                estimatedReadTime: ScriptParser.estimatedReadTime(wordCount: wordCount),
-                progress: viewModel.progress,
-                isPlaying: viewModel.isPlaying
-            )
-            .padding(.bottom, 12)
+            footerView
         }
         .opacity(windowOpacity)
         .edgesIgnoringSafeArea(.top)
@@ -186,9 +118,10 @@ struct ContentView: View {
             handleDrop(providers: providers)
         }
         .onChange(of: hideFromScreenSharing) { _, newValue in
-            if let window = NSApplication.shared.windows.first(where: { $0.title == "Echoly" }) {
-                window.sharingType = newValue ? .none : .readOnly
-            }
+            updateScreenSharing(hide: newValue)
+        }
+        .onChange(of: scrollMode) { _, newMode in
+            if newMode == 1 && viewModel.isPlaying { viewModel.togglePlay() }
         }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ManualScroll"))) { _ in
             if scrollMode == 1 && !isEditing {
@@ -216,27 +149,46 @@ struct ContentView: View {
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ExportPDF"))) { _ in
             PDFExporter.exportPDF(text: viewModel.text, fontSize: fontSize)
         }
-        .onChange(of: scrollMode) { _, newMode in
-            if newMode == 1 && viewModel.isPlaying { viewModel.togglePlay() }
-        }
     }
     
-    // MARK: - Cue Rendered Text
+    // MARK: - Components
     
-    @ViewBuilder
-    func cueRenderedText() -> some View {
-        let segs = ScriptParser.textSegments(from: viewModel.text)
-        if segs.count <= 1 {
-            Text(viewModel.text)
-                .font(.system(size: fontSize, weight: .bold, design: fontDesign))
-                .foregroundColor(highContrast ? .white : .primary.opacity(0.85))
-                .lineSpacing(lineSpace)
-                .multilineTextAlignment(alignment)
-        } else {
-            let attr = ScriptParser.buildAttributedString(from: segs, fontSize: fontSize, fontDesign: fontDesign, highContrast: highContrast)
-            Text(attr)
-                .lineSpacing(lineSpace)
-                .multilineTextAlignment(alignment)
+    private var filenameHeader: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "doc.text")
+                .font(.system(size: 10))
+            Text(currentFileName)
+                .font(.system(size: 10, weight: .medium, design: .monospaced))
+            Spacer()
+        }
+        .foregroundColor(.secondary.opacity(0.6))
+        .padding(.horizontal, 20)
+        .padding(.vertical, 8)
+    }
+    
+    private var footerView: some View {
+        let wordCount = ScriptParser.wordCount(for: viewModel.text)
+        return PrompterFooter(
+            wordCount: wordCount,
+            estimatedReadTime: ScriptParser.estimatedReadTime(wordCount: wordCount),
+            progress: viewModel.progress,
+            isPlaying: viewModel.isPlaying
+        )
+        .padding(.bottom, 12)
+    }
+    
+    private var dropZoneOverlay: some View {
+        RoundedRectangle(cornerRadius: 8)
+            .stroke(Color.primary.opacity(0.15), style: StrokeStyle(lineWidth: 1.5, dash: [6]))
+            .background(Color.primary.opacity(0.03))
+            .padding(6)
+    }
+    
+    // MARK: - Helper Actions
+    
+    private func updateScreenSharing(hide: Bool) {
+        if let window = NSApplication.shared.windows.first(where: { $0.title == "Echoly" }) {
+            window.sharingType = hide ? .none : .readOnly
         }
     }
     

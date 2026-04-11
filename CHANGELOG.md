@@ -2,6 +2,12 @@
 
 All notable changes to the **Echoly** project will be documented in this file.
 
+## [2.3.0] - 2026-04-11
+### Changed
+- **Code Refactor & Decomposition**: Split the monolithic `ContentView.swift` into smaller, modular components. Introduced `PrompterDisplayView` to encapsulate the core scrolling logic, focus mask, and reading zone indicators.
+- **MVVM Optimization**: Moved UI formatting logic (font designs, text alignments) from the View layer into `PrompterViewModel` for better separation of concerns.
+- **View Cleanup**: Simplified `ContentView` by extracting sub-components and organizing notification handling into cleaner, dedicated methods.
+
 ## [2.2.0] - 2026-04-06
 ### Added
 - **About Window**: A clean, minimalist About window that displays application meta-data, stays on top seamlessly, and auto-closes after 35 seconds.
