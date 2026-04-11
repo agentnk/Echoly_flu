@@ -55,9 +55,7 @@ struct ContentView: View {
     
     var body: some View {
         VStack(spacing: 0) {
-            Color.clear.frame(height: 12)
-            
-            // Toolbar
+            // Toolbar (Floating Pill)
             PrompterToolbar(
                 isPlaying: viewModel.isPlaying,
                 speed: viewModel.speed,
@@ -70,16 +68,15 @@ struct ContentView: View {
                     viewModel.manualScroll(fontSize: fontSize, lineSpace: lineSpace, linesPerScroll: linesPerScroll)
                 }
             )
-            .padding(.horizontal, 20)
-            .padding(.vertical, 8)
-            .padding(.top, 20)
+            .padding(.horizontal, 22)
+            .padding(.top, 24)
+            .padding(.bottom, 12)
+            .opacity(viewModel.isPlaying ? 0.3 : 1.0)
+            .scaleEffect(viewModel.isPlaying ? 0.98 : 1.0)
+            .blur(radius: viewModel.isPlaying ? 2 : 0)
+            .animation(.spring(response: 0.6, dampingFraction: 0.8), value: viewModel.isPlaying)
             
-            Divider().background(Color.primary.opacity(0.08))
-            
-            // Filename header
-            filenameHeader
-            
-            // Main Prompter
+            // Main Content Area
             ZStack {
                 PrompterDisplayView(
                     viewModel: viewModel,
@@ -94,11 +91,21 @@ struct ContentView: View {
                 )
                 .clipped()
                 
+                // Filename overlay (Subtle)
+                VStack {
+                    HStack {
+                        filenameHeader
+                        Spacer()
+                    }
+                    Spacer()
+                }
+                .padding(.top, 8)
+                .padding(.leading, 36)
+                .opacity(viewModel.isPlaying ? 0 : 0.6)
+                .animation(.easeOut(duration: 0.3), value: viewModel.isPlaying)
+                
                 if viewModel.showCountdown {
-                    Color.black.opacity(0.5).edgesIgnoringSafeArea(.all)
-                    Text("\(viewModel.countdownValue)")
-                        .font(.system(size: 80, weight: .ultraLight, design: .rounded))
-                        .foregroundColor(.white.opacity(0.9))
+                    countdownOverlay
                 }
                 
                 if isTargeted {
@@ -106,12 +113,14 @@ struct ContentView: View {
                 }
             }
             
-            Divider().background(Color.primary.opacity(0.08))
-            
-            // Footer
+            // Footer (Premium Glass)
             footerView
+                .opacity(viewModel.isPlaying ? 0.2 : 1.0)
+                .blur(radius: viewModel.isPlaying ? 1 : 0)
+                .animation(.spring(response: 0.6, dampingFraction: 0.8), value: viewModel.isPlaying)
         }
         .opacity(windowOpacity)
+        .background(VisualEffectView().ignoresSafeArea()) // Deep Glassmorphism
         .edgesIgnoringSafeArea(.top)
         .preferredColorScheme(highContrast ? .dark : theme.colorScheme)
         .onDrop(of: [.fileURL], isTargeted: $isTargeted) { providers in
@@ -152,6 +161,19 @@ struct ContentView: View {
     }
     
     // MARK: - Components
+    
+    private var countdownOverlay: some View {
+        ZStack {
+            Color.black.opacity(0.4).edgesIgnoringSafeArea(.all)
+                .transition(.opacity)
+            
+            Text("\(viewModel.countdownValue)")
+                .font(.system(size: 120, weight: .ultraLight, design: .rounded))
+                .foregroundColor(.white)
+                .shadow(color: .black.opacity(0.2), radius: 20)
+                .transition(.scale.combined(with: .opacity))
+        }
+    }
     
     private var filenameHeader: some View {
         HStack(spacing: 6) {

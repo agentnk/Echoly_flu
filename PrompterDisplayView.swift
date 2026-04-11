@@ -43,11 +43,11 @@ struct PrompterDisplayView: View {
                             LinearGradient(
                                 stops: [
                                     .init(color: .clear, location: 0.0),
-                                    .init(color: .clear, location: 0.1),
-                                    .init(color: .black, location: 0.35),
-                                    .init(color: .black, location: 0.45),
-                                    .init(color: .black.opacity(0.2), location: 0.46),
-                                    .init(color: .black.opacity(0.1), location: 1.0)
+                                    .init(color: .black.opacity(0.1), location: 0.15),
+                                    .init(color: .black, location: 0.38),
+                                    .init(color: .black, location: 0.42),
+                                    .init(color: .black.opacity(0.3), location: 0.48),
+                                    .init(color: .black.opacity(0.05), location: 1.0)
                                 ],
                                 startPoint: .top,
                                 endPoint: .bottom
@@ -60,15 +60,17 @@ struct PrompterDisplayView: View {
             // Reading Zone Indicators
             if !isEditing {
                 HStack {
-                    RoundedRectangle(cornerRadius: 1.5)
-                        .fill(Color.primary.opacity(0.15))
-                        .frame(width: 4, height: 40)
+                    Capsule()
+                        .fill(Color.echolyIndigo.opacity(0.4))
+                        .frame(width: 3, height: 32)
+                        .blur(radius: 0.5)
                     Spacer()
-                    RoundedRectangle(cornerRadius: 1.5)
-                        .fill(Color.primary.opacity(0.15))
-                        .frame(width: 4, height: 40)
+                    Capsule()
+                        .fill(Color.echolyIndigo.opacity(0.4))
+                        .frame(width: 3, height: 32)
+                        .blur(radius: 0.5)
                 }
-                .padding(.horizontal, 6)
+                .padding(.horizontal, 4)
                 .position(x: geo.size.width / 2, y: geo.size.height * 0.4)
             }
         }
