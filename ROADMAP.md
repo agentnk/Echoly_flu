@@ -4,9 +4,10 @@ This document outlines the planned internal improvements and future feature addi
 
 ## 🟢 Phase 1: Enhanced Core & Utilities (Upcoming)
 - [ ] **Custom Hotkey Mapping**: Allow users to remap keyboard shortcuts for play/pause, speed, and manual advance.
-- [ ] **Rich Text Support (RTF)**: Basic support for highlighted text and bold/italic formatting within the prompter.
+- [x] **Rich Text Support (RTF)**: Basic support for highlighted text and bold/italic formatting within the prompter.
 - [ ] **Advanced Timer Logic**: Display "Time Remaining" based on current scroll speed and remaining text length.
 - [ ] **Auto-Save**: Ensure script edits in Editor Mode are saved locally every 30 seconds.
+
 
 ## 🟡 Phase 2: Professional Features & AI (Mid-Term)
 - [ ] **Voice-Activated Scrolling**: Real-time speech-to-scroll using on-device Apple Speech recognition.

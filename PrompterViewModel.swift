@@ -2,7 +2,10 @@ import SwiftUI
 import Combine
 
 class PrompterViewModel: ObservableObject {
-    @Published var text: String = "Welcome to Echoly\n\nStart your speech here. Adjust the scroll speed and font size using the toolbar above.\n\nYou can use [PAUSE], [SLOW], or [CUE] markers in your text for automatic control."
+    @Published var attributedText: NSAttributedString = NSAttributedString(string: "Welcome to Echoly\n\nStart your speech here. Adjust the scroll speed and font size using the toolbar above.\n\nYou can use [PAUSE], [SLOW], or [CUE] markers in your text for automatic control.")
+    
+    var text: String { attributedText.string }
+    
     @Published var speed: CGFloat = 1.0
     @Published var baseSpeed: CGFloat = 1.0
     @Published var isPlaying: Bool = false
@@ -71,19 +74,20 @@ class PrompterViewModel: ObservableObject {
     }
     
     private func checkForCuePause() {
-        guard !text.isEmpty else { return }
+        let plain = text
+        guard !plain.isEmpty else { return }
         
         let ratio = scrollPosition / max(textHeight, 1)
-        let currentCharIndex = Int(CGFloat(text.count) * ratio)
+        let currentCharIndex = Int(CGFloat(plain.count) * ratio)
         
         // Search in a small window around current scroll position
         let lookAhead = 15
         let start = max(0, currentCharIndex - 5)
-        let end = min(text.count, currentCharIndex + lookAhead)
+        let end = min(plain.count, currentCharIndex + lookAhead)
         
-        let startIdx = text.index(text.startIndex, offsetBy: start, limitedBy: text.endIndex) ?? text.startIndex
-        let endIdx = text.index(text.startIndex, offsetBy: end, limitedBy: text.endIndex) ?? text.endIndex
-        let window = String(text[startIdx..<endIdx])
+        let startIdx = plain.index(plain.startIndex, offsetBy: start, limitedBy: plain.endIndex) ?? plain.startIndex
+        let endIdx = plain.index(plain.startIndex, offsetBy: end, limitedBy: plain.endIndex) ?? plain.endIndex
+        let window = String(plain[startIdx..<endIdx])
         
         if window.localizedCaseInsensitiveContains("[PAUSE]") {
             togglePlay()
@@ -103,7 +107,16 @@ class PrompterViewModel: ObservableObject {
     }
     
     func loadText(_ newText: String) {
-        self.text = newText
+        self.attributedText = NSAttributedString(string: newText)
+        resetPlaybackState()
+    }
+    
+    func loadAttributedText(_ newAttrText: NSAttributedString) {
+        self.attributedText = newAttrText
+        resetPlaybackState()
+    }
+    
+    private func resetPlaybackState() {
         self.scrollPosition = 0
         if self.isPlaying {
             self.togglePlay()
@@ -138,3 +151,4 @@ class PrompterViewModel: ObservableObject {
         }
     }
 }
+

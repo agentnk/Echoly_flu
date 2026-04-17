@@ -1,8 +1,8 @@
 import AppKit
 
 struct PDFExporter {
-    static func exportPDF(text: String, fontSize: CGFloat) {
-        guard !text.isEmpty else { return }
+    static func exportPDF(attributedText: NSAttributedString, fontSize: CGFloat) {
+        guard attributedText.length > 0 else { return }
         let panel = NSSavePanel()
         panel.allowedContentTypes = [.pdf]
         panel.nameFieldStringValue = "script.pdf"
@@ -18,51 +18,40 @@ struct PDFExporter {
             guard let consumer = CGDataConsumer(data: pdfData as CFMutableData),
                   let context = CGContext(consumer: consumer, mediaBox: nil, nil) else { return }
             
-            let paragraphs = text.components(separatedBy: "\n")
-            var currentY: CGFloat = textRect.maxY
-            let font = NSFont.monospacedSystemFont(ofSize: max(fontSize * 0.4, 12), weight: .regular)
-            let attrs: [NSAttributedString.Key: Any] = [
-                .font: font,
-                .foregroundColor: NSColor.black
-            ]
+            // For PDF black-on-white export, we might want to override the color if it's too light
+            // but for true rich text export, we should probably keep as much as possible.
+            let fullAttrStr = attributedText.mutableCopy() as! NSMutableAttributedString
+            
+            // Adjust base font if needed, but respect internal formatting
+            fullAttrStr.enumerateAttribute(.font, in: NSRange(location: 0, length: fullAttrStr.length), options: []) { font, range, _ in
+                if let oldFont = font as? NSFont {
+                    let newFont = NSFont(descriptor: oldFont.fontDescriptor, size: max(oldFont.pointSize * 0.5, 12)) ?? oldFont
+                    fullAttrStr.addAttribute(.font, value: newFont, range: range)
+                }
+            }
             
             context.beginPDFPage(nil)
             
-            for para in paragraphs {
-                let attrStr = NSAttributedString(string: para.isEmpty ? " " : para, attributes: attrs)
-                let framesetter = CTFramesetterCreateWithAttributedString(attrStr)
-                let size = CTFramesetterSuggestFrameSizeWithConstraints(
-                    framesetter,
-                    CFRange(location: 0, length: attrStr.length),
-                    nil,
-                    CGSize(width: textRect.width, height: .greatestFiniteMagnitude),
-                    nil
-                )
+            let framesetter = CTFramesetterCreateWithAttributedString(fullAttrStr)
+            var currentRange = CFRangeMake(0, 0)
+            var currentY: CGFloat = textRect.maxY
+            
+            while currentRange.location < fullAttrStr.length {
+                let path = CGPath(rect: textRect, transform: nil)
+                let frame = CTFramesetterCreateFrame(framesetter, currentRange, path, nil)
                 
-                currentY -= size.height + 6
-                if currentY < textRect.minY {
-                    context.endPDFPage()
-                    context.beginPDFPage(nil)
-                    currentY = textRect.maxY - size.height - 6
-                }
-                
-                let path = CGPath(
-                    rect: CGRect(x: textRect.minX, y: currentY, width: textRect.width, height: size.height),
-                    transform: nil
-                )
-                let frame = CTFramesetterCreateFrame(
-                    framesetter,
-                    CFRange(location: 0, length: attrStr.length),
-                    path,
-                    nil
-                )
+                context.beginPDFPage(nil)
                 CTFrameDraw(frame, context)
+                context.endPDFPage()
+                
+                let visibleRange = CTFrameGetVisibleStringRange(frame)
+                currentRange.location += visibleRange.length
             }
             
-            context.endPDFPage()
             context.closePDF()
             
             try? pdfData.write(to: url)
         }
     }
 }
+

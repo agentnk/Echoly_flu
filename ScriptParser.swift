@@ -13,43 +13,26 @@ struct ScriptParser {
         return "\(Int(minutes)) min"
     }
     
-    static func textSegments(from text: String) -> [(text: String, isCue: Bool)] {
+    static func processRichTextCues(from attrText: NSAttributedString, fontSize: CGFloat, fontDesign: Font.Design, highContrast: Bool) -> AttributedString {
+        var result = AttributedString(attrText)
+        let plain = attrText.string
+        
         let pattern = "\\[(PAUSE|SLOW|CUE)\\]"
         guard let regex = try? NSRegularExpression(pattern: pattern, options: .caseInsensitive) else {
-            return [(text, false)]
+            return result
         }
-        var segments: [(String, Bool)] = []
-        var lastEnd = text.startIndex
-        let nsRange = NSRange(text.startIndex..., in: text)
         
-        for match in regex.matches(in: text, range: nsRange) {
-            if let range = Range(match.range, in: text) {
-                let before = String(text[lastEnd..<range.lowerBound])
-                if !before.isEmpty { segments.append((before, false)) }
-                segments.append((String(text[range]), true))
-                lastEnd = range.upperBound
+        let nsRange = NSRange(plain.startIndex..., in: plain)
+        let matches = regex.matches(in: plain, range: nsRange).reversed()
+        
+        for match in matches {
+            if let range = Range(match.range, in: result) {
+                result[range].foregroundColor = .orange
+                result[range].font = .system(size: fontSize * 0.7, weight: .bold, design: .rounded)
             }
         }
-        let remaining = String(text[lastEnd...])
-        if !remaining.isEmpty { segments.append((remaining, false)) }
-        return segments
-    }
-    
-    static func buildAttributedString(from segs: [(text: String, isCue: Bool)], fontSize: CGFloat, fontDesign: Font.Design, highContrast: Bool) -> AttributedString {
-        var result = AttributedString()
-        for seg in segs {
-            if seg.isCue {
-                var part = AttributedString(seg.text)
-                part.font = .system(size: fontSize * 0.75, weight: .bold, design: .rounded)
-                part.foregroundColor = .orange
-                result += part
-            } else {
-                var part = AttributedString(seg.text)
-                part.font = .system(size: fontSize, weight: .bold, design: fontDesign)
-                part.foregroundColor = highContrast ? .white : Color.primary.opacity(0.85)
-                result += part
-            }
-        }
+        
         return result
     }
 }
+

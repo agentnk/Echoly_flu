@@ -156,7 +156,7 @@ struct ContentView: View {
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ExportPDF"))) { _ in
-            PDFExporter.exportPDF(text: viewModel.text, fontSize: fontSize)
+            PDFExporter.exportPDF(attributedText: viewModel.attributedText, fontSize: fontSize)
         }
     }
     
@@ -189,7 +189,8 @@ struct ContentView: View {
     }
     
     private var footerView: some View {
-        let wordCount = ScriptParser.wordCount(for: viewModel.text)
+        let text = viewModel.text
+        let wordCount = ScriptParser.wordCount(for: text)
         return PrompterFooter(
             wordCount: wordCount,
             estimatedReadTime: ScriptParser.estimatedReadTime(wordCount: wordCount),
@@ -198,6 +199,7 @@ struct ContentView: View {
         )
         .padding(.bottom, 12)
     }
+
     
     private var dropZoneOverlay: some View {
         RoundedRectangle(cornerRadius: 8)
@@ -223,8 +225,8 @@ struct ContentView: View {
     }
     
     func loadFile(from url: URL) {
-        if let newText = DocumentHandler.loadText(from: url) {
-            viewModel.loadText(newText)
+        if let newAttrText = DocumentHandler.loadAttributedText(from: url) {
+            viewModel.loadAttributedText(newAttrText)
             recentFilesData = DocumentHandler.addRecentFile(url.path, to: recentFilesData)
         }
     }
@@ -235,3 +237,4 @@ struct ContentView: View {
         }
     }
 }
+

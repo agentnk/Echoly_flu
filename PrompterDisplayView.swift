@@ -15,11 +15,8 @@ struct PrompterDisplayView: View {
         GeometryReader { geo in
             Group {
                 if isEditing {
-                    TextEditor(text: $viewModel.text)
-                        .font(.system(size: fontSize, weight: .bold, design: fontDesign))
-                        .lineSpacing(lineSpace)
+                    RichTextEditor(attributedText: $viewModel.attributedText, fontSize: fontSize, fontDesign: fontDesign)
                         .padding(.horizontal, 40)
-                        .scrollContentBackground(.hidden)
                         .background(Color.clear)
                 } else {
                     cueRenderedText()
@@ -28,7 +25,7 @@ struct PrompterDisplayView: View {
                         .background(GeometryReader { textGeo in
                             Color.clear
                                 .onAppear { viewModel.textHeight = textGeo.size.height }
-                                .onChange(of: viewModel.text) { viewModel.textHeight = textGeo.size.height }
+                                .onChange(of: viewModel.attributedText) { _ in viewModel.textHeight = textGeo.size.height }
                                 .onChange(of: textGeo.size) { viewModel.textHeight = textGeo.size.height }
                         })
                         .offset(y: max(0, geo.size.height * 0.4) - viewModel.scrollPosition)
@@ -78,18 +75,21 @@ struct PrompterDisplayView: View {
     
     @ViewBuilder
     private func cueRenderedText() -> some View {
-        let segs = ScriptParser.textSegments(from: viewModel.text)
-        if segs.count <= 1 {
-            Text(viewModel.text)
-                .font(.system(size: fontSize, weight: .bold, design: fontDesign))
-                .foregroundColor(highContrast ? .white : .primary.opacity(0.85))
+        let plain = viewModel.text
+        if plain.contains("[PAUSE]") || plain.contains("[SLOW]") || plain.contains("[CUE]") {
+            // If we have cues, we merge our markers with the attributed text
+            let attr = ScriptParser.processRichTextCues(from: viewModel.attributedText, fontSize: fontSize, fontDesign: fontDesign, highContrast: highContrast)
+            Text(attr)
                 .lineSpacing(lineSpace)
                 .multilineTextAlignment(alignment)
         } else {
-            let attr = ScriptParser.buildAttributedString(from: segs, fontSize: fontSize, fontDesign: fontDesign, highContrast: highContrast)
-            Text(attr)
+            // Direct rendering for standard rich text
+            Text(AttributedString(viewModel.attributedText))
+                .font(.system(size: fontSize, weight: .bold, design: fontDesign))
+                .foregroundColor(highContrast ? .white : .primary.opacity(0.85))
                 .lineSpacing(lineSpace)
                 .multilineTextAlignment(alignment)
         }
     }
 }
+

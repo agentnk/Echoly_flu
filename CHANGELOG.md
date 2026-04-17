@@ -2,15 +2,18 @@
 
 All notable changes to the **Echoly** project will be documented in this file.
 
-## [2.4.0] - 2026-04-11
+## [2.5.0] - 2026-04-17
 ### Added
-- **Deep Glassmorphism**: Integrated native macOS `NSVisualEffectView` for a professional, translucent material background that adapts to user wallpapers.
-- **Compact Mode**: Implemented a distraction-free playback experience where the toolbar and footer smoothly fade out and blur during active scrolling.
+- **Rich Text Support (RTF/RTFD)**: Introduced native support for Rich Text Format, allowing users to apply Bold, Italic, and color highlights directly within their scripts.
+- **Custom Rich Text Editor**: Implemented a standalone `RichTextEditor` using `NSTextView` for a premium, high-performance editing experience.
+- **Enhanced PDF Export**: Updated the PDF engine to preserve all rich text formatting, including custom fonts and colors.
+- **RTF/RTFD File Handling**: Added support for importing and exporting standard rich text documents.
 ### Changed
-- **Premium UI Overhaul**: Complete redesign of all interface components using a curated "Indigo" design system.
-- **Floating Pill Toolbar**: Redesigned the toolbar into a more modern, floating pill container with interactive scale-feedback buttons and refined icons.
-- **Polished Footer**: Replaced the basic progress bar with a sophisticated glass-inspired track and a pulsing "LIVE" status indicator.
-- **Refined Focus Mask**: Optimized the prompter's active focus area with a more natural gradient fall-off.
+- **Architectural Cleanup**: Consolidated redundant view components and refactored `ScriptParser` to work natively with `NSAttributedString`.
+- **UI Refinement**: Added quick-access formatting buttons to the main toolbar.
+- **Code Optimization**: Unified the glassmorphism logic and removed obsolete source files (`VisualEffectView.swift`).
+
+## [2.4.0] - 2026-04-11
 
 ## [2.3.0] - 2026-04-11
 ### Changed

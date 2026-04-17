@@ -104,9 +104,22 @@ struct PrompterToolbar: View {
                 .background(Color.adaptiveGray(scheme).opacity(0.5))
                 .clipShape(Capsule())
                 
+                // Formatting
+                HStack(spacing: 4) {
+                    ToolbarButton(systemName: "bold", action: { NSApp.sendAction(#selector(NSTextView.toggleFontPanel(_:)), to: nil, from: nil) })
+                        .help("Font Panel")
+                    
+                    ToolbarButton(systemName: "pencil.tip.crop.circle", action: { NSColorPanel.shared.makeKeyAndOrderFront(nil) })
+                        .help("Color Panel")
+                }
+                .padding(.horizontal, 4)
+                .background(Color.adaptiveGray(scheme).opacity(0.3))
+                .clipShape(Capsule())
+                
                 ToolbarButton(systemName: themePreference == 2 ? "sun.max.fill" : "moon.fill", action: {
                     themePreference = themePreference == 2 ? 1 : 2
                 })
+
                 
                 ToolbarButton(systemName: "slider.horizontal.3", action: { SettingsWindowManager.show() })
                     .help("Settings")
