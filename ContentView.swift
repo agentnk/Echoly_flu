@@ -22,30 +22,6 @@ struct ContentView: View {
     
     var theme: AppTheme { AppTheme(rawValue: themePreference) ?? .system }
     
-    var fontDesign: Font.Design {
-        switch fontFamily {
-        case 1: return .serif
-        case 2: return .default
-        default: return .monospaced
-        }
-    }
-    
-    var alignment: TextAlignment {
-        switch textAlignment {
-        case 1: return .center
-        case 2: return .trailing
-        default: return .leading
-        }
-    }
-    
-    var frameAlignment: Alignment {
-        switch textAlignment {
-        case 1: return .center
-        case 2: return .trailing
-        default: return .leading
-        }
-    }
-    
     var currentFileName: String {
         if let firstPath = recentFilesData.components(separatedBy: "|||").first, !firstPath.isEmpty {
             return URL(fileURLWithPath: firstPath).lastPathComponent

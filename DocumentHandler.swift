@@ -48,11 +48,6 @@ struct DocumentHandler {
         }
     }
     
-    // Kept for backward compatibility if needed, but preferred to use loadAttributedText
-    static func loadText(from url: URL) -> String? {
-        return loadAttributedText(from: url)?.string
-    }
-    
     static func openFile(completion: @escaping (URL?) -> Void) {
         let panel = NSOpenPanel()
         panel.allowedContentTypes = allowedContentTypes

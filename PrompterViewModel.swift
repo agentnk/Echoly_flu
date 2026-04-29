@@ -106,11 +106,6 @@ class PrompterViewModel: ObservableObject {
         }
     }
     
-    func loadText(_ newText: String) {
-        self.attributedText = NSAttributedString(string: newText)
-        resetPlaybackState()
-    }
-    
     func loadAttributedText(_ newAttrText: NSAttributedString) {
         self.attributedText = newAttrText
         resetPlaybackState()
