@@ -52,17 +52,16 @@ struct RichTextEditor: NSViewRepresentable {
         
         func textDidChange(_ notification: Notification) {
             guard let textView = notification.object as? NSTextView else { return }
-            parent.attributedText = textView.attributedSubstring(forProposedRange: NSRange(location: 0, length: textView.string.count), actualRange: nil)
+            parent.attributedText = textView.attributedSubstring(
+                forProposedRange: NSRange(location: 0, length: textView.string.count),
+                actualRange: nil
+            ) ?? NSAttributedString()
         }
     }
 }
 
 extension NSColor {
     static var primaryStyle: NSColor {
-        #if canImport(AppKit)
         return NSColor.labelColor
-        #else
-        return .white
-        #endif
     }
 }

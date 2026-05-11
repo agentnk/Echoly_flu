@@ -25,8 +25,8 @@ struct PrompterDisplayView: View {
                         .background(GeometryReader { textGeo in
                             Color.clear
                                 .onAppear { viewModel.textHeight = textGeo.size.height }
-                                .onChange(of: viewModel.attributedText) { _ in viewModel.textHeight = textGeo.size.height }
-                                .onChange(of: textGeo.size) { viewModel.textHeight = textGeo.size.height }
+                                .onChange(of: viewModel.attributedText, perform: { _ in viewModel.textHeight = textGeo.size.height })
+                                .onChange(of: textGeo.size, perform: { _ in viewModel.textHeight = textGeo.size.height })
                         })
                         .offset(y: max(0, geo.size.height * 0.4) - viewModel.scrollPosition)
                         .scaleEffect(x: mirrorMode ? -1 : 1, y: 1)

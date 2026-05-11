@@ -1,5 +1,4 @@
 import SwiftUI
-import AppKit
 
 struct AboutView: View {
     private let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"

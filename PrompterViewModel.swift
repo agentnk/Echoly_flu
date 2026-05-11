@@ -116,8 +116,6 @@ class PrompterViewModel: ObservableObject {
         if self.isPlaying {
             self.togglePlay()
         }
-        self.timer?.invalidate()
-        self.timer = nil
     }
     
     // MARK: - Formatting Helpers

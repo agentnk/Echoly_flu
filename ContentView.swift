@@ -96,7 +96,7 @@ struct ContentView: View {
                 .animation(.spring(response: 0.6, dampingFraction: 0.8), value: viewModel.isPlaying)
         }
         .opacity(windowOpacity)
-        .background(VisualEffectView().ignoresSafeArea()) // Deep Glassmorphism
+        .background(VisualEffectView().ignoresSafeArea())
         .edgesIgnoringSafeArea(.top)
         .preferredColorScheme(highContrast ? .dark : theme.colorScheme)
         .onDrop(of: [.fileURL], isTargeted: $isTargeted) { providers in

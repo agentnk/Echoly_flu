@@ -106,7 +106,7 @@ struct PrompterToolbar: View {
                 
                 // Formatting
                 HStack(spacing: 4) {
-                    ToolbarButton(systemName: "bold", action: { NSApp.sendAction(#selector(NSTextView.toggleFontPanel(_:)), to: nil, from: nil) })
+                    ToolbarButton(systemName: "bold", action: { NSFontManager.shared.orderFrontFontPanel(nil) })
                         .help("Font Panel")
                     
                     ToolbarButton(systemName: "pencil.tip.crop.circle", action: { NSColorPanel.shared.makeKeyAndOrderFront(nil) })
